@@ -1,0 +1,8 @@
+kivy==2.3.1
+vosk==0.3.44
+pyttsx3==2.99
+regex==2025.9.18
+pyaudio==0.2.14
+pytest==8.4.2
+urllib3==1.26.18
+word2number==1.1
