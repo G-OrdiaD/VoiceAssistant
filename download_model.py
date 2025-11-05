@@ -1,5 +1,5 @@
 """
-Script to download and extract the Vosk English model (en-us-0.22)
+Script to download and extract the Vosk English model (en-gb-0.15)
 """
 
 import os
@@ -9,10 +9,11 @@ import argparse
 import requests
 from tqdm import tqdm
 
-MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-en-us-0.22.zip"
-MODEL_DIR = "assets/models"
-MODEL_PATH = os.path.join(MODEL_DIR, "vosk-model-en-us-0.22")
-ZIP_PATH = os.path.join(MODEL_DIR, "vosk-model-en-us-0.22.zip")
+# Download the small UK model
+MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-en-gb-0.15.zip"
+MODEL_DIR = "assets/models" 
+MODEL_PATH = os.path.join(MODEL_DIR, "vosk-model-small-en-gb-0.15")
+ZIP_PATH = os.path.join(MODEL_DIR, "vosk-model-small-en-gb-0.15.zip")
 
 
 def download_file(url, destination):
