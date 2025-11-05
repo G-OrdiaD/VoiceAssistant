@@ -1,0 +1,28 @@
+#:kivy 2.3.1
+#:import dp kivy.metrics.dp
+
+<BaseScreen>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+ScreenManager:
+    id: screen_manager
+
+    MainScreen:
+        id: main_screen
+        name: 'main'
+        manager: screen_manager
+
+    TasksScreen:
+        id: tasks_screen
+        name: 'tasks'
+        manager: screen_manager
+
+    SettingsScreen:
+        id: settings_screen
+        name: 'settings'
+        manager: screen_manager

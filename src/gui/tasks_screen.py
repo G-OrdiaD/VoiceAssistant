@@ -1,0 +1,137 @@
+import logging
+from kivy.uix.screenmanager import Screen
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.properties import StringProperty, NumericProperty, BooleanProperty
+from kivy.clock import Clock
+from kivy.metrics import dp 
+
+class TasksScreen(Screen):
+    font_size = NumericProperty(20)
+    font_family = StringProperty('Rubik')
+    high_contrast = BooleanProperty(False)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.app = None
+        Clock.schedule_once(self._post_init, 0.1)
+
+    def set_app_instance(self, app_instance):
+        self.app = app_instance
+
+    def _post_init(self, dt):
+        if self.app:
+            self.load_all_tasks()
+
+    def load_all_tasks(self):
+        if not self.app:
+            return
+        try:
+            tasks = self.app.db_manager.get_all_tasks()
+            tasks = self.sort_tasks_by_time(tasks)
+            self.update_tasks_display(tasks)
+        except Exception as e:
+            logging.error(f"Error loading tasks: {e}")
+
+    def sort_tasks_by_time(self, tasks):
+        def time_to_minutes(time_str: str) -> int:
+            try:
+                t = time_str.upper().replace(' ', '')
+                if 'AM' in t or 'PM' in t:
+                    part = t.replace('AM', '').replace('PM', '')
+                    hours, minutes = map(int, part.split(':'))
+                    if 'PM' in t and hours != 12:
+                        hours += 12
+                    if 'AM' in t and hours == 12:
+                        hours = 0
+                    return hours * 60 + minutes
+                else:
+                    hours, minutes = map(int, t.split(':'))
+                    return hours * 60 + minutes
+            except Exception:
+                return 0
+        return sorted(tasks, key=lambda x: time_to_minutes(x.due_time))
+
+    def update_tasks_display(self, tasks):
+        if not hasattr(self, 'ids') or 'all_tasks_grid' not in self.ids:
+            return
+
+        grid = self.ids.all_tasks_grid
+        grid.clear_widgets()
+
+        if not tasks:
+            empty_label = Label(
+                text="No tasks yet",
+                font_size=dp(self.font_size),  # UPDATE TO DYNAMIC SIZE
+                font_name=self.font_family,  # UPDATE TO DYNAMIC FONT
+                color=(0.5, 0.5, 0.5, 1),
+                size_hint_y=None,
+                height=dp(100),
+                halign='center'
+            )
+            grid.add_widget(empty_label)
+            return
+
+        for task in tasks:
+            item = TaskListItem(
+                text=f"{task.title}\nAt: {task.due_time}",
+                task_id=task.id
+            )
+            item.bind(on_delete=self.delete_task)
+            grid.add_widget(item)
+
+    def delete_task(self, instance, task_id):
+        if not self.app:
+            return
+        try:
+            if self.app.db_manager.delete_task(task_id):
+                self.load_all_tasks()
+                if getattr(self.app, "tts_engine", None):
+                    self.app.tts_engine.speak("Task deleted")
+            else:
+                if getattr(self.app, "tts_engine", None):
+                    self.app.tts_engine.speak("Error deleting task")
+        except Exception as e:
+            logging.error(f"Error deleting task: {e}")
+            if getattr(self.app, "tts_engine", None):
+                self.app.tts_engine.speak("Could not delete task")
+
+    def go_to_settings(self):
+        if hasattr(self, 'manager'):
+            self.manager.current = 'settings'
+
+    def apply_settings(self, font_family, font_size, high_contrast):
+        """Apply settings to Tasks screen."""
+        print(f"🔧 TasksScreen: Applying settings - {font_family} {font_size}px, Contrast: {high_contrast}") 
+        # UPDATE THIS METHOD TO ACTUALLY SET PROPERTIES
+        self.font_family = font_family
+        self.font_size = font_size
+        self.high_contrast = high_contrast
+        self.load_all_tasks()
+
+    def refresh_with_settings(self, font_family, font_size, high_contrast):
+        self.apply_settings(font_family, font_size, high_contrast)
+
+    def go_back(self):
+        if self.app:
+            self.app.show_main_screen()
+
+    def on_enter(self):
+        self.load_all_tasks()
+
+class TaskListItem(BoxLayout):
+    text = StringProperty("")
+    task_id = NumericProperty(0)
+    font_size = NumericProperty(20)
+    font_family = StringProperty('Rubik')
+
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.register_event_type('on_delete')
+
+    def delete_task(self):
+        self.dispatch('on_delete', self.task_id)
+
+    def on_delete(self, *args):
+        pass
