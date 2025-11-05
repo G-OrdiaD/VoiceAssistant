@@ -1,0 +1,173 @@
+#:kivy 2.3.1
+#:import dp kivy.metrics.dp
+
+<TasksScreen>:
+    canvas.before:
+        Color:
+            rgba: (1, 0.98, 0.95, 1) if not root.high_contrast else (1, 1, 1, 1)
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [dp(15), dp(10), dp(15), dp(10)]
+        spacing: dp(15)
+
+        # --- TOP BAR: HOME (left) + SETTINGS (right) ---
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.08
+            spacing: dp(10)
+            padding: [dp(10), 0, dp(10), 0]
+
+            # Home button
+            Button:
+                text: 'HOME'
+                font_size: dp(20)
+                font_name: app.font_family 
+                size_hint_x: 0.2
+                size_hint_y: None
+                height: dp(35)
+                on_press: root.go_back()
+                color: 1, 1, 1, 1
+                background_normal: ''
+                background_color: 0, 0, 0, 0
+                canvas.before:
+                    Color:
+                        rgba: 0.36, 0.52, 0.96, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(8),]
+
+            Widget:  # spacer
+                size_hint_x: 1
+
+            # Settings button with icon overlay
+            RelativeLayout:
+                size_hint: None, None
+                size: dp(50), dp(50)
+                pos_hint: {'center_y': 0.5}
+
+                Button:
+                    id: settings_btn
+                    size_hint: None, None
+                    size: dp(50), dp(50)
+                    background_color: 0, 0, 0, 0
+                    background_normal: ''
+                    on_press: root.go_to_settings()
+                    canvas.before:
+                        Color:
+                            rgba: (0.5, 0.6, 0.9, 0.6) if self.state == 'down' else (0.5, 0.6, 0.9, 0.4)
+                        Ellipse:
+                            pos: self.pos
+                            size: self.size
+
+                Image:
+                    source: 'assets/icons/settings.png'
+                    size_hint: None, None
+                    size: dp(38), dp(38)
+                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                    fit_mode: 'contain'
+
+        # --- TITLE BELOW TOP BAR ---
+        Label:
+            text: 'ALL TASKS'
+            font_size: dp(32)
+            font_name: app.font_family 
+            bold: True
+            color: (0.6, 0.4, 0.2, 1) if not root.high_contrast else (0, 0, 0, 1)
+            size_hint_y: None
+            height: dp(40)
+            text_size: self.width, None
+            halign: 'center'
+            valign: 'middle'
+
+        # --- TASK LIST BELOW TITLE ---
+        ScrollView:
+            do_scroll_x: False
+            do_scroll_y: True
+            bar_width: dp(6)
+            bar_color: 0.5, 0.5, 0.5, 0.7
+
+            GridLayout:
+                id: all_tasks_grid
+                cols: 1
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(10)
+                padding: [dp(5), dp(5)]
+
+<TaskListItem>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: dp(70)
+    spacing: dp(8)
+    padding: dp(10)
+
+    canvas.before:
+        Color:
+            rgba: 1, 0.95, 0.8, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(12),]
+        Color:
+            rgba: 0.9, 0.8, 0.4, 1
+        Line:
+            rounded_rectangle: [self.x, self.y, self.width, self.height, dp(12)]
+            width: dp(1.5)
+
+    Label:
+        text: root.text
+        font_size: dp(20)
+        font_name: app.font_family  
+        size_hint_x: 0.7
+        color: 0.2, 0.2, 0.2, 1
+        text_size: self.width, None
+        halign: 'left'
+        valign: 'middle'
+
+    # Done Button (Green Checkmark)
+    Button:
+        size_hint_x: 0.15
+        background_color: 0, 0, 0, 0
+        background_normal: ''
+        on_press: root.mark_complete_task()
+        canvas.before:
+            Color:
+                rgba: 0.2, 0.8, 0.2, 0.9
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(8),]
+        
+        Image:
+            source: 'assets/icons/done.png'
+            size_hint: None, None
+            size: dp(28), dp(28)
+            pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+            center: self.parent.center
+
+
+    # Delete Button (Red Trash) 
+    Button:
+        size_hint_x: 0.15
+        background_color: 0, 0, 0, 0
+        background_normal: ''
+        on_press: root.delete_task()
+        canvas.before:
+            Color:
+                rgba: 0.8, 0.2, 0.2, 0.9
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(8),]
+        
+        Image:
+            source: 'assets/icons/delete.png'
+            size_hint: None, None
+            size: dp(28), dp(28)
+            pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+            center: self.parent.center

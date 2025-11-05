@@ -1,0 +1,538 @@
+#:kivy 2.3.1
+#:import dp kivy.metrics.dp
+
+<BasePopup>:
+    background: ''
+    separator_color: 0.4, 0.5, 0.8, 1
+    title_align: 'center'
+    
+    canvas.before:
+        Color:
+            rgba: 0.96, 0.96, 0.98, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(20),]
+        Color:
+            rgba: 0.8, 0.8, 0.85, 1
+        Line:
+            width: dp(2)
+            rounded_rectangle: [self.x, self.y, self.width, self.height, dp(20)]
+
+<AddTaskPopup>:
+    size_hint: (0.8, 0.5)
+    title: 'Add Task'
+    title_size: dp(20)
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [dp(20), dp(15), dp(20), dp(15)]
+        spacing: dp(15)
+
+        Label:
+            text: 'Enter your task:'
+            font_size: dp(18)
+            font_name: app.font_family  
+            color: 0.3, 0.3, 0.4, 1
+            size_hint_y: 0.12
+            text_size: self.width, None
+            halign: 'center'
+            valign: 'middle'
+
+        TextInput:
+            id: task_input
+            size_hint_y: 0.18
+            hint_text: 'e.g., Call Daughter...'
+            font_name: app.font_family  
+            multiline: False
+            background_normal: ''
+            background_active: ''
+            background_color: 0.95, 0.95, 0.95, 1
+            foreground_color: 0.2, 0.2, 0.2, 1
+            font_size: dp(16)
+            padding: [dp(10), dp(8)]
+            canvas.before:
+                Color:
+                    rgba: 0.7, 0.7, 0.7, 1
+                Line:
+                    width: dp(1.5)
+                    rounded_rectangle: [self.x, self.y, self.width, self.height, dp(6)]
+
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.18
+            spacing: dp(10)
+            
+            Label:
+                text: 'TIME:'
+                font_size: dp(20)
+                font_name: app.font_family
+                color: 0.3, 0.3, 0.4, 1
+                size_hint_x: 0.25
+                text_size: self.width, None
+                halign: 'center'
+                valign: 'middle'
+
+            TextInput:
+                id: time_input
+                size_hint_x: 0.15
+                hint_text: '06:00'
+                text: ''
+                font_name: app.font_family  
+                input_filter: 'int'
+                multiline: False
+                background_normal: ''
+                background_active: ''
+                background_color: 0.95, 0.95, 0.95, 1
+                foreground_color: 0.2, 0.2, 0.2, 1
+                padding: [dp(8), dp(8)]
+                font_size: dp(16)
+                canvas.before:
+                    Color:
+                        rgba: 0.7, 0.7, 0.7, 1
+                    Line:
+                        width: dp(1.5)
+                        rounded_rectangle: [self.x, self.y, self.width, self.height, dp(6)]
+
+            Spinner:
+                id: am_pm_spinner
+                size_hint_x: 0.14
+                text: 'AM'
+                values: ['AM', 'PM']
+                font_name: app.font_family  
+                background_normal: ''
+                background_color: 0.95, 0.95, 0.95, 1
+                font_size: dp(14)
+                canvas.before:
+                    Color:
+                        rgba: 0.7, 0.7, 0.7, 1
+                    Line:
+                        width: dp(1.5)
+                        rounded_rectangle: [self.x, self.y, self.width, self.height, dp(6)]
+
+            Widget:
+                size_hint_x: 0.3
+
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.2
+            spacing: dp(15)
+            padding: [dp(20), dp(5), dp(20), 0]
+
+            Button:
+                text: 'Cancel'
+                font_size: dp(18)
+                font_name: app.font_family  
+                background_normal: ''
+                background_color: 0, 0, 0, 0
+                color: 1, 1, 1, 1
+                on_press: root.dismiss()
+                canvas.before:
+                    Color:
+                        rgba: 0.9, 0.3, 0.3, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(8),]
+
+            Button:
+                text: 'Save Task'
+                font_size: dp(18)
+                font_name: app.font_family  
+                background_normal: ''
+                background_color: 0, 0, 0, 0
+                color: 1, 1, 1, 1
+                on_press: root.save_task()
+                canvas.before:
+                    Color:
+                        rgba: 0.36, 0.52, 0.96, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(8),]
+
+<ConfirmationPopup>:
+    size_hint: (0.8, 0.4)
+    title: root.popup_title
+    title_size: dp(18)
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [dp(20), dp(15), dp(20), dp(15)]
+        spacing: dp(15)
+
+        Label:
+            text: root.confirmation_text
+            font_size: dp(18)
+            font_name: app.font_family  
+            color: 0.3, 0.3, 0.4, 1
+            size_hint_y: 0.6
+            text_size: self.width, None
+            halign: 'center'
+            valign: 'middle'
+
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.3
+            spacing: dp(15)
+            padding: [dp(30), 0]
+
+            Button:
+                text: 'OK'
+                font_size: dp(20)
+                font_name: app.font_family 
+                background_normal: ''
+                background_color: 0, 0, 0, 0
+                color: 1, 1, 1, 1
+                on_press: root.dismiss()
+                canvas.before:
+                    Color:
+                        rgba: 0.36, 0.52, 0.96, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(8),]
+
+<ListeningPopup>:
+    size_hint: (0.8, 0.4)
+    title: 'Listening...'
+    title_size: dp(20)
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [dp(20), dp(15), dp(20), dp(15)]
+        spacing: dp(15)
+
+        Label:
+            text: 'Speak your command now'
+            font_size: dp(18)
+            font_name: app.font_family 
+            color: 0.1, 0.1, 0.1, 1
+            size_hint_y: 0.3
+            text_size: self.width, None
+            halign: 'center'
+            valign: 'middle'
+
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.4
+            padding: [dp(20), 0]
+
+            Image:
+                source: 'assets/icons/listen.png'
+                size_hint_x: 0.4
+                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                fit_mode: 'contain'
+
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.2
+            spacing: dp(15)
+            padding: [dp(30), 0]
+
+            Button:
+                text: 'Cancel'
+                font_size: dp(18)
+                font_name: app.font_family  
+                background_normal: ''
+                background_color: 0, 0, 0, 0
+                color: 1, 1, 1, 1
+                on_press: root.dismiss()
+                canvas.before:
+                    Color:
+                        rgba: 0.8, 0.2, 0.2, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(8),]
+
+<MainScreen>:
+    canvas.before:
+        Color:
+            rgba: (1, 0.98, 0.95, 1) if not root.high_contrast else (1, 1, 1, 1)
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [dp(15), dp(10), dp(15), dp(10)]
+        spacing: dp(10)
+
+        # Top Bar - Settings Button with proper spacing
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.08
+            padding: [0, 0, dp(10), 0]
+            
+            Widget:
+                size_hint_x: 1
+            
+            # Settings Button (top-right)
+            Button:
+                id: settings_btn
+                size_hint: None, None
+                size: dp(50), dp(50)
+                background_color: 0, 0, 0, 0
+                background_normal: ''
+                on_press: root.show_settings()
+                pos_hint: {'right': 1, 'center_y': 0.5}
+                canvas.before:
+                    Color:
+                        rgba: (0.5, 0.6, 0.9, 0.6) if self.state == 'down' else (0.5, 0.6, 0.9, 0.4)
+                    Ellipse:
+                        pos: self.pos
+                        size: self.size
+
+                # Icon stays locked to the button center
+                Image:
+                    source: 'assets/icons/settings.png'
+                    size_hint: None, None
+                    size: dp(38), dp(38)
+                    center: settings_btn.center
+                    fit_mode: 'contain'
+
+        # DAILY TASKS Title 
+        Label:
+            text: 'DAILY TASKS'
+            font_size: dp(36)
+            font_name: app.font_family  
+            bold: True
+            color: (0.6, 0.4, 0.2, 1) if not root.high_contrast else (0, 0, 0, 1)
+            size_hint_y: None
+            height: dp(30)
+            text_size: self.width, None
+            halign: 'center'
+            valign: 'middle'
+
+        # Tasks Section - Compact
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.2
+            spacing: dp(8)
+
+            ScrollView:
+                do_scroll_x: False
+                do_scroll_y: True
+                bar_width: dp(6)
+                bar_color: 0.5, 0.5, 0.5, 0.7
+
+                GridLayout:
+                    id: tasks_grid
+                    cols: 1
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(8)
+                    padding: [dp(8), dp(8)]
+
+        # Speak Section properly centered
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.5  # Reduced to make space for action buttons
+            spacing: dp(10)
+            
+            Widget:
+                size_hint_y: 0.2
+            
+            # Speak Button Container
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: 0.4
+                spacing: dp(5)
+
+                Button:
+                    id: speak_button
+                    size_hint: None, None
+                    size: dp(140), dp(140)
+                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                    background_color: 0, 0, 0, 0
+                    background_normal: ''
+                    on_press: root.start_voice_command()
+
+                    canvas.before:
+                        Color:
+                            rgba: (0.2, 0.6, 0.2, 1) if self.state == 'down' else (0.1, 0.5, 0.2, 1)
+                        Ellipse:
+                            pos: self.pos
+                            size: self.size
+                        Color:
+                            rgba: (0.4, 0.8, 0.4, 1) if self.state == 'down' else (0.3, 0.7, 0.3, 1)
+                        Ellipse:
+                            pos: [self.pos[0] + dp(8), self.pos[1] + dp(8)]
+                            size: [self.size[0] - dp(16), self.size[1] - dp(16)]
+
+                    # Icon follows the animated button center precisely
+                    Image:
+                        source: 'assets/icons/mic.png'
+                        size_hint: None, None
+                        size: dp(100), dp(100)
+                        center: speak_button.center
+                        fit_mode: 'contain'
+
+                Label:
+                    text: 'SPEAK'
+                    font_size: dp(36)
+                    font_name: app.font_family  
+                    bold: True
+                    color: (0.6, 0.4, 0.2, 1) if not root.high_contrast else (0, 0, 0, 1)
+                    size_hint_y: None
+                    height: dp(25)
+                    text_size: self.width, None
+                    halign: 'center'
+                    valign: 'middle'
+            
+            Widget:
+                size_hint_y: 0.2
+
+        # Action Buttons - USING REGULAR BUTTONS
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.15  # Increased height
+            spacing: dp(15)    # More spacing
+            padding: [dp(20), dp(10), dp(20), dp(5)]  # Better padding, moved up
+
+            Button:
+                id: view_all_btn
+                background_normal: ''
+                background_color: 0, 0, 0, 0
+                on_press: root.show_all_tasks()
+                canvas.before:
+                    Color:
+                        rgba: 0.36, 0.52, 0.96, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(8),]
+                
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size: self.parent.size
+                    pos: self.parent.pos
+                    padding: [dp(15), 0]
+                    spacing: dp(10)
+                    
+                    Image:
+                        source: 'assets/icons/view.png'
+                        size: dp(40), dp(40)  # Smaller icon
+                        size_hint: None, None
+                        pos_hint: {'center_y': 0.5}
+                    
+                    Label:
+                        text: 'View All Tasks'
+                        font_size: dp(16)  # Smaller font
+                        font_name: app.font_family
+                        bold: True
+                        color: 1, 1, 1, 1
+                        text_size: self.width, None
+                        halign: 'left'
+                        valign: 'middle'
+                        pos_hint: {'center_y': 0.5}
+
+            Button:
+                id: add_manual_btn
+                background_normal: ''
+                background_color: 0, 0, 0, 0
+                on_press: root.add_manual_task()
+                canvas.before:
+                    Color:
+                        rgba: 0.36, 0.52, 0.96, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(8),]
+                
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size: self.parent.size
+                    pos: self.parent.pos
+                    padding: [dp(15), 0]
+                    spacing: dp(10)
+                    
+                    Image:
+                        source: 'assets/icons/add.png'
+                        size: dp(40), dp(40)  # Smaller icon
+                        size_hint: None, None
+                        pos_hint: {'center_y': 0.5}
+                    
+                    Label:
+                        text: 'Add Tasks'
+                        font_size: dp(16)  # Smaller font
+                        font_name: app.font_family  
+                        bold: True
+                        color: 1, 1, 1, 1
+                        text_size: self.width, None
+                        halign: 'left'
+                        valign: 'middle'
+                        pos_hint: {'center_y': 0.5}
+
+<TaskItem>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: dp(70)
+    spacing: dp(4) 
+    padding: [dp(10), dp(8), dp(5), dp(8)]
+
+    canvas.before:
+        Color:
+            rgba: 1, 0.95, 0.8, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(12),]
+        Color:
+            rgba: 0.9, 0.8, 0.4, 1
+        Line:
+            rounded_rectangle: [self.x, self.y, self.width, self.height, dp(12)]
+            width: dp(2)
+
+    Label:
+        text: root.text
+        font_size: dp(18)
+        font_name: app.font_family  
+        size_hint_x: 0.65 
+        color: 0.2, 0.2, 0.2, 1
+        text_size: self.width, None
+        halign: 'left'
+        valign: 'middle'
+
+    # Done Button - CENTERED ICON
+    Button:
+        size_hint_x: 0.15
+        background_color: 0, 0, 0, 0
+        background_normal: ''
+        on_press: root.mark_done()
+        canvas.before:
+            Color:
+                rgba: 0.2, 0.8, 0.2, 0.9
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(6),]  
+        
+        Image:
+            source: 'assets/icons/done.png'
+            size_hint: None, None
+            size: dp(28), dp(28)  
+            pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+            center: self.parent.center
+
+    # Delete Button - CENTERED ICON
+    Button:
+        size_hint_x: 0.15
+        background_color: 0, 0, 0, 0
+        background_normal: ''
+        on_press: root.delete_task()
+        canvas.before:
+            Color:
+                rgba: 0.8, 0.2, 0.2, 0.9
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(6),]
+        
+        Image:
+            source: 'assets/icons/delete.png'
+            size_hint: None, None
+            size: dp(28), dp(28) 
+            pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+            center: self.parent.center
