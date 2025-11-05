@@ -7,12 +7,10 @@ from kivy.properties import ListProperty, StringProperty, NumericProperty, Boole
 from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.animation import Animation
-from kivy.uix.textinput import TextInput
-from kivy.uix.spinner import Spinner  
-from kivy.uix.button import Button
 from .popups import AddTaskPopup, ConfirmationPopup, ListeningPopup
 
 class TaskItem(BoxLayout):
+    __events__ = ('on_delete', 'on_complete')
     text = StringProperty("")
     task_id = NumericProperty(0)
     font_family = StringProperty('Rubik')  
@@ -20,7 +18,6 @@ class TaskItem(BoxLayout):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.register_event_type('on_delete')
 
     def delete_task(self):
         self.dispatch('on_delete', self.task_id)
@@ -28,18 +25,12 @@ class TaskItem(BoxLayout):
     def on_delete(self, *args):
         pass
 
-class ModernTextInput(TextInput):
-    font_family = StringProperty('Rubik')
-    font_size = NumericProperty(18)
+    def mark_complete_task(self):
+        self.dispatch('on_complete', self.task_id)
 
-class ModernSpinner(Spinner):
-    font_family = StringProperty('Rubik') 
-    font_size = NumericProperty(18)
+    def on_complete(self, *args):
+        pass
 
-class ModernButton(Button):
-    font_family = StringProperty('Rubik')
-    font_size = NumericProperty(18)
-    
 class MainScreen(Screen):
     tasks = ListProperty([])
     font_size = NumericProperty(20)  
@@ -142,13 +133,30 @@ class MainScreen(Screen):
             self.ids.tasks_grid.add_widget(empty_label)
             return
 
-        for task in self.tasks[:3]:
+        for task in self.tasks[:3]:  # Show only first 3 tasks on main screen
             task_item = TaskItem(
                 text=f"{task.title}\nAt: {task.due_time}",
                 task_id=task.id
             )
             task_item.bind(on_delete=self.delete_task)
+            task_item.bind(on_complete=self.mark_complete_task)
             self.ids.tasks_grid.add_widget(task_item)
+
+    def mark_complete_task(self, instance, task_id):
+        if not self.app:
+            return
+        try:
+            if self.app.db_manager.mark_done(task_id):
+                self.load_tasks()
+                if getattr(self.app, "tts_engine", None):
+                    self.app.tts_engine.speak("Task Done")
+            else:
+                if getattr(self.app, "tts_engine", None):
+                    self.app.tts_engine.speak("Error completing task")
+        except Exception as e:
+            logging.error(f"Error completing task: {e}")
+            if getattr(self.app, "tts_engine", None):
+                self.app.tts_engine.speak("Could not complete task")
 
     def start_voice_command(self):
         if not self.app:
@@ -164,18 +172,6 @@ class MainScreen(Screen):
 
     def on_voice_command(self, text):
         Clock.schedule_once(lambda dt: self._process_voice_command(text), 0)
-
-    def confirm_ambiguous_time(self, task, ambiguous_hour, period):
-        if not self.app:
-            return
-
-        clarified_time_text = f"{ambiguous_hour} {period}"
-        normalized_time = self.app.command_parser._normalize_time_ampm(clarified_time_text)
-
-        if normalized_time:
-            self.create_task(task, normalized_time)
-        else:
-            self.app.tts_engine.speak("Sorry, I still had trouble processing that time. Please try again.")
 
     def _process_voice_command(self, text):
         if self.listening_popup:
@@ -204,29 +200,12 @@ class MainScreen(Screen):
                 task, time = result
                 self.create_task(task, time, text)
         else:
-            ambiguous_match = re.search(
-                r'remind me.*? (.+?) (?:at|on|by)\s*(\d{1,2}(?::\d{2})?)(?!\s*a\.?m\.?|\s*p\.?m\.?|\s*in the morning|\s*in the evening|\s*at night)',
-                text
+            error_popup = ConfirmationPopup(
+                confirmation_text=f"I didn't understand: '{text}'\n\nTry: 'Take a Walk by 10 AM'"
             )
-
-            if ambiguous_match:
-                task = ambiguous_match.group(1).strip()
-                ambiguous_time = ambiguous_match.group(2).strip()
-
-                clarification_popup = TimeClarificationPopup(
-                    task=task,
-                    ambiguous_hour=ambiguous_time,
-                    clarification_callback=self.confirm_ambiguous_time
-                )
-                clarification_popup.open()
-                self.app.tts_engine.speak(f"Is the task at {ambiguous_time} in the morning or evening?")
-            else:
-                error_popup = ConfirmationPopup(
-                    confirmation_text=f"I didn't understand: '{text}'\n\nTry: 'Add task take medicine at 9 AM'"
-                )
-                error_popup.title = 'Not Understood'
-                error_popup.open()
-                self.app.tts_engine.speak("Sorry, I didn't understand. Please try again.")
+            error_popup.title = 'Not Understood'
+            error_popup.open()
+            self.app.tts_engine.speak("Sorry, I didn't understand. Please try again.")
 
     def _handle_list_tasks_command(self):
         if not self.app:

@@ -16,18 +16,16 @@ from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.text import LabelBase
 from kivy.core.window import Window
-# Window Sizes
-Window.size = (600, 800) # Set default window size
 
-Window.minimum_width = 600 # Set minimum window size
-Window.minimum_height = 800 # Set minimum window size
+Window.size = (550, 800) # Set default window size
+Window.minimum_width, Window.minimum_height = 550, 800  # Set minimum and maximum window size at once
 
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 
-# Setup logging FIRST, before any other imports
-logging.basicConfig( # Configure logging
+# Setup and Configure logging 
+logging.basicConfig( 
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
@@ -44,14 +42,13 @@ current_dir = os.path.dirname(__file__)
 project_root = os.path.dirname(current_dir)
 
 
-
 # Load KV files
 Builder.load_file('gui/main_screen.kv')
 Builder.load_file('gui/tasks_screen.kv')
 Builder.load_file('gui/settings_screen.kv')
 
 
-def register_application_fonts():
+def register_application_fonts():  # Register custom fonts for the application
     try:
         # Get absolute paths for fonts
         abs_current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -85,7 +82,7 @@ def register_application_fonts():
         crimson_black = os.path.join(crimson_dir, 'CrimsonPro-Black.ttf')
 
         # Debug: Print paths to verify
-        print(f"🔍 Checking font paths:")
+        print("🔍 Checking font paths:")
         print(f"   Rubik Regular: {rubik_regular} -> {os.path.exists(rubik_regular)}")
         print(f"   Arial Regular: {arial_regular} -> {os.path.exists(arial_regular)}")
         print(f"   Balsamiq Sans Regular: {balsamiq_regular} -> {os.path.exists(balsamiq_regular)}")
@@ -153,28 +150,27 @@ class VoiceAssistantApp(App): # Main application class
         self.stt_engine = None
         self.tts_engine = None
         self.command_parser = None
-        self.font_size = 20
-        self.font_family = 'Rubik'
-        self.high_contrast = False
+        self.font_family = 'Rubik'  # Universal font
+        self.font_size = 20   # Default font size
+        self.high_contrast = False 
         self.current_voice = 0
 
     def _initialize_components(self): # Initialize application components
         """Initialize all application components"""
         try:
-            self.db_manager = DatabaseManager()
+            self.db_manager = DatabaseManager() # Database manager
             model_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'models',
-                                      'vosk-model-en-us-0.22')
-            self.stt_engine = SpeechToTextEngine(model_path)
-            self.tts_engine = TextToSpeechEngine()
-            self.command_parser = CommandParser()
-            logging.info("All components initialized successfully")
+                                    'vosk-model-small-en-gb-0.15') # Vosk model path
+            self.stt_engine = SpeechToTextEngine(model_path) # STT engine
+            self.tts_engine = TextToSpeechEngine() # TTS engine
+            self.command_parser = CommandParser() # Command parser
+            logging.info("All components initialized successfully") # Log success
             return True
         except Exception as e:
             logging.error("Failed to initialize components: %s", e) # Log error
             return False # Initialization failed
 
-    def build(self):
-        """Build the application UI"""
+    def build(self): # Build the application UI
         Window.clearcolor = (1, 1, 1, 1)
 
         self.screen_manager = ScreenManager()
@@ -210,7 +206,7 @@ class VoiceAssistantApp(App): # Main application class
 
         return self.screen_manager
 
-    def apply_settings_globally(self):
+    def apply_settings_globally(self):  # apply settings across all screens
         """Apply current settings to all screens"""
         for screen_name in ['main', 'tasks', 'settings']:
             screen = self.screen_manager.get_screen(screen_name)
@@ -237,7 +233,7 @@ class VoiceAssistantApp(App): # Main application class
         """Show settings screen"""
         self.screen_manager.current = 'settings'
 
-    def on_stop(self):
+    def on_stop(self): 
         """Cleanup when application closes"""
         if self.stt_engine:
             self.stt_engine.stop_listening()

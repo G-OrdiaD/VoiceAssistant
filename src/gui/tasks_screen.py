@@ -6,9 +6,31 @@ from kivy.properties import StringProperty, NumericProperty, BooleanProperty
 from kivy.clock import Clock
 from kivy.metrics import dp 
 
+class TaskListItem(BoxLayout):
+    __events__ = ('on_delete', 'on_complete')
+    text = StringProperty("")
+    task_id = NumericProperty(0)
+    font_size = NumericProperty(20)
+    font_family = StringProperty('Rubik')  # Changed to Rubik
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def delete_task(self):
+        self.dispatch('on_delete', self.task_id)
+    
+    def mark_done(self):
+        self.dispatch('on_complete', self.task_id)
+
+    def on_delete(self, *args):
+        pass
+
+    def on_complete(self, *args):
+        pass
+
 class TasksScreen(Screen):
     font_size = NumericProperty(20)
-    font_family = StringProperty('Rubik')
+    font_family = StringProperty('Rubik')  # Changed to Rubik
     high_contrast = BooleanProperty(False)
 
     def __init__(self, **kwargs):
@@ -57,13 +79,13 @@ class TasksScreen(Screen):
             return
 
         grid = self.ids.all_tasks_grid
-        grid.clear_widgets()
+        grid.clear_widgets()  # Clear existing widgets FIRST
 
         if not tasks:
             empty_label = Label(
                 text="No tasks yet",
-                font_size=dp(self.font_size),  # UPDATE TO DYNAMIC SIZE
-                font_name=self.font_family,  # UPDATE TO DYNAMIC FONT
+                font_size=dp(self.font_size), 
+                font_name=self.font_family, 
                 color=(0.5, 0.5, 0.5, 1),
                 size_hint_y=None,
                 height=dp(100),
@@ -77,8 +99,10 @@ class TasksScreen(Screen):
                 text=f"{task.title}\nAt: {task.due_time}",
                 task_id=task.id
             )
+            # Bind BOTH events to the SAME item
             item.bind(on_delete=self.delete_task)
-            grid.add_widget(item)
+            item.bind(on_complete=self.mark_done)
+            grid.add_widget(item) # Add the item ONLY ONCE
 
     def delete_task(self, instance, task_id):
         if not self.app:
@@ -95,6 +119,22 @@ class TasksScreen(Screen):
             logging.error(f"Error deleting task: {e}")
             if getattr(self.app, "tts_engine", None):
                 self.app.tts_engine.speak("Could not delete task")
+    
+    def mark_done(self, instance, task_id):
+        if not self.app:
+            return
+        try:
+            if self.app.db_manager.mark_done(task_id):
+                self.load_all_tasks()
+                if getattr(self.app, "tts_engine", None):
+                    self.app.tts_engine.speak("Task Done")
+            else:
+                if getattr(self.app, "tts_engine", None):
+                    self.app.tts_engine.speak("Error completing task")
+        except Exception as e:
+            logging.error(f"Error completing task: {e}")
+            if getattr(self.app, "tts_engine", None):
+                self.app.tts_engine.speak("Could not complete task")
 
     def go_to_settings(self):
         if hasattr(self, 'manager'):
@@ -103,7 +143,7 @@ class TasksScreen(Screen):
     def apply_settings(self, font_family, font_size, high_contrast):
         """Apply settings to Tasks screen."""
         print(f"🔧 TasksScreen: Applying settings - {font_family} {font_size}px, Contrast: {high_contrast}") 
-        # UPDATE THIS METHOD TO ACTUALLY SET PROPERTIES
+       
         self.font_family = font_family
         self.font_size = font_size
         self.high_contrast = high_contrast
@@ -118,20 +158,3 @@ class TasksScreen(Screen):
 
     def on_enter(self):
         self.load_all_tasks()
-
-class TaskListItem(BoxLayout):
-    text = StringProperty("")
-    task_id = NumericProperty(0)
-    font_size = NumericProperty(20)
-    font_family = StringProperty('Rubik')
-
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.register_event_type('on_delete')
-
-    def delete_task(self):
-        self.dispatch('on_delete', self.task_id)
-
-    def on_delete(self, *args):
-        pass
