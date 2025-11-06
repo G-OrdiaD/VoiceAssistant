@@ -4,35 +4,36 @@ from kivy.metrics import dp
 from kivy.properties import StringProperty, NumericProperty
 
 
-class BasePopup(Popup):
+class BasePopup(Popup): # Base class for popups with common properties
     font_family = StringProperty('Rubik')
     font_size = NumericProperty(18)
 
-
-class AddTaskPopup(BasePopup):
+class AddTaskPopup(BasePopup): # Popup to add a new task
     def __init__(self, save_callback, **kwargs):
         super().__init__(**kwargs)
         self.save_callback = save_callback
+        self.app = None  # Will be set when popup opens
 
-    def save_task(self):
-        task = self.ids.task_input.text.strip()
-        time_part = self.ids.time_input.text.strip()
+    def save_task(self): # Save the task and time input
+        task_text = self.ids.task_input.text.strip()
+        time_text = self.ids.time_input.text.strip()
         am_pm = self.ids.am_pm_spinner.text
         
-        if task and time_part:
-            if self._validate_time(time_part):
-                full_time = f"{time_part} {am_pm}"
-                self.save_callback(task, full_time)
-                self.dismiss()
+        if task_text and time_text:
+            if self.app and hasattr(self.app, 'command_parser'):
+                formatted_task = self.app.command_parser.format_task_text(task_text)
             else:
-                pass
+                formatted_task = task_text  # Fallback if app not available
+            full_time = f"{time_text} {am_pm}"
+            self.save_callback(formatted_task, full_time)
+            self.dismiss()
 
-    def _validate_time(self, time_str):
+    def _validate_time(self, time_str): # Validate time format HH:MM
         pattern = r'^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$'
         return re.match(pattern, time_str) is not None
 
 
-class ConfirmationPopup(BasePopup):
+class ConfirmationPopup(BasePopup): # Popup to confirm task addition
     confirmation_text = StringProperty("")
     popup_title = StringProperty("Task Added!")
     
@@ -43,7 +44,7 @@ class ConfirmationPopup(BasePopup):
             self.popup_title = kwargs["title"]
 
 
-class ListeningPopup(BasePopup):
+class ListeningPopup(BasePopup): # Popup indicating listening state
     def __init__(self, dismiss_callback, **kwargs):
         super().__init__(**kwargs)
         self.dismiss_callback = dismiss_callback
@@ -53,7 +54,7 @@ class ListeningPopup(BasePopup):
             self.dismiss_callback()
 
 
-class SettingsConfirmationPopup(BasePopup):
+class SettingsConfirmationPopup(BasePopup): # Popup to confirm settings saved
     confirmation_text = StringProperty("Your settings successfully saved!")
     
     def __init__(self, **kwargs):
@@ -62,7 +63,7 @@ class SettingsConfirmationPopup(BasePopup):
         self.size_hint = (0.6, 0.4)
 
 
-class AlarmPopup(Popup):
+class AlarmPopup(Popup): # Popup for active alarms
     def __init__(self, task, alarm_key, alarm_manager, **kwargs):
         super().__init__(**kwargs)
         self.task = task
