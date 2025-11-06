@@ -31,26 +31,23 @@ class CommandParser:
             ]
         }
 
-    def parse_task_command(self, text: str) -> Optional[Tuple[str, str]]:
-        """Parse task command and extract task and time"""
+    def parse_task_command(self, text: str) -> Optional[dict]:
+        """Always return dict with consistent structure"""
         text = text.lower().strip()
-        logger.info(f"Parsing command: {text}")
+        logger.info(f"Parsing command: '{text}'")
 
-        # First check for list tasks command
-        if self._is_list_tasks_command(text):
-            return "LIST_TASKS", ""
-
-        # Check for delete task command
+        # 1. DELETE commands (HIGHEST PRIORITY)
         delete_result = self._parse_delete_command(text)
         if delete_result:
-            return delete_result
+            command_type, task_desc = delete_result
+            formatted_task = self.format_task_text(task_desc)
+            return {"type": command_type, "task": formatted_task}
 
-        # Check for relative time tasks
-        relative_result = self._parse_relative_time(text)
-        if relative_result:
-            return relative_result
+        # 2. LIST commands
+        if self._is_list_tasks_command(text):
+            return {"type": "LIST_TASKS"}
 
-        # Check for absolute time tasks
+        # 3. ADD commands (LOWEST PRIORITY)
         for pattern in self.patterns['set_task']:
             match = re.search(pattern, text)
             if match:
@@ -59,20 +56,32 @@ class CommandParser:
                     task = match.group(1).strip()
                     time_text = match.group(2).strip()
                 else:
-                    # For patterns with more groups, use the last two
                     task = match.group(-2).strip()
                     time_text = match.group(-1).strip()
 
-                # Validate and normalize time (keeping AM/PM format)
+                # Apply sentence case formatting
+                formatted_task = self.format_task_text(task)
                 normalized_time = self._normalize_time_ampm(time_text)
+                
                 if normalized_time:
-                    logger.info(f"Parsed: task='{task}', time='{normalized_time}'")
-                    return task, normalized_time
-                else:
-                    logger.warning(f"Could not normalize time for task: {time_text}")
-                    return None
+                    logger.info(f"Parsed: task='{formatted_task}', time='{normalized_time}'")
+                    return {
+                        "type": "ADD_TASK", 
+                        "task": formatted_task, 
+                        "time": normalized_time
+                    }
 
         logger.warning(f"No valid pattern matched for: {text}")
+        return None
+
+    def _parse_delete_command(self, text: str) -> Optional[Tuple[str, str]]:
+        """Parse delete task command - returns tuple for internal use"""
+        for pattern in self.patterns['delete_task']:
+            match = re.search(pattern, text)
+            if match:
+                task_to_delete = match.group(1).strip()
+                logger.info(f"Parsed delete command for: '{task_to_delete}'")
+                return "DELETE_TASK", task_to_delete
         return None
 
     def _is_list_tasks_command(self, text: str) -> bool:
@@ -81,16 +90,6 @@ class CommandParser:
             if re.search(pattern, text):
                 return True
         return False
-
-    def _parse_delete_command(self, text: str) -> Optional[Tuple[str, str]]:
-        """Parse delete task command"""
-        for pattern in self.patterns['delete_task']:
-            match = re.search(pattern, text)
-            if match:
-                task_to_delete = match.group(1).strip()
-                logger.info(f"Parsed delete command for: '{task_to_delete}'")
-                return "DELETE_TASK", task_to_delete
-        return None
 
     def _parse_relative_time(self, text: str) -> Optional[Tuple[str, str]]:
         """Parse relative time commands (in X minutes/hours)"""
@@ -112,6 +111,56 @@ class CommandParser:
                     logger.info(f"Parsed relative time: task='{task}', time='{relative_time}'")
                     return task, relative_time
         return None
+
+    def format_task_text(self, text: str) -> str:
+        """Format task text to proper sentence case for BOTH screens"""
+        if not text or not text.strip():
+            return text
+        
+        text = text.strip()
+        
+        # Common nouns and proper nouns to capitalize
+        nouns_to_capitalize = {
+            'doctor', 'nurse', 'hospital', 'pharmacy', 'medicine', 'pill', 
+            'tablet', 'dose', 'appointment', 'clinic', 'emergency',
+            'son', 'daughter', 'wife', 'husband', 'mother', 'father',
+            'mom', 'dad', 'grandpa', 'grandma', 'family', 'love'
+        }
+        
+        # Action verbs to capitalize  
+        action_verbs = {
+            'call', 'take', 'visit', 'see', 'meet', 'schedule', 'book',
+            'remember', 'remind', 'check', 'monitor', 'measure', 'walk',
+            'exercise', 'eat', 'drink', 'read', 'write'
+        }
+        
+        # Proper names (common first names)
+        proper_names = {
+            'james', 'john', 'mary', 'sarah', 'michael', 'david', 'lisa',
+            'anna', 'paul', 'peter', 'robert', 'william', 'elizabeth'
+        }
+        
+        words = text.split()
+        formatted_words = []
+        
+        for i, word in enumerate(words):
+            clean_word = word.lower().strip('.,!?')
+            
+            # Always capitalize first word
+            if i == 0:
+                formatted_word = word[0].upper() + word[1:].lower() if len(word) > 1 else word.upper()
+            # Capitalize nouns, action verbs, and proper names
+            elif (clean_word in nouns_to_capitalize or 
+                  clean_word in action_verbs or 
+                  clean_word in proper_names):
+                formatted_word = word[0].upper() + word[1:].lower() if len(word) > 1 else word.upper()
+            # Keep articles/prepositions lowercase
+            else:
+                formatted_word = word.lower()
+            
+            formatted_words.append(formatted_word)
+        
+        return ' '.join(formatted_words)
 
     def _normalize_time_ampm(self, time_text: str) -> Optional[str]:
         """Normalize time text to AM/PM format only"""
