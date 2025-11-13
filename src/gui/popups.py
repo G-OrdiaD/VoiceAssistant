@@ -43,7 +43,6 @@ class ConfirmationPopup(BasePopup): # Popup to confirm task addition
         if "title" in kwargs:
             self.popup_title = kwargs["title"]
 
-
 class ListeningPopup(BasePopup): # Popup indicating listening state
     def __init__(self, dismiss_callback, **kwargs):
         super().__init__(**kwargs)
@@ -63,12 +62,22 @@ class SettingsConfirmationPopup(BasePopup): # Popup to confirm settings saved
         self.size_hint = (0.6, 0.4)
 
 
-class AlarmPopup(Popup): # Popup for active alarms
-    def __init__(self, task, alarm_key, alarm_manager, **kwargs):
+class DefaultSettingsPopup(BasePopup):
+    confirmation_text = StringProperty("All settings reset to default values!")
+    
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.title = 'Default Settings'
+        self.size_hint = (0.6, 0.4)
+
+class AlarmPopup(BasePopup): # Popup for active alarms
+    def __init__(self, task, alarm_key, alarm_manager, **kwargs):
+        
         self.task = task
         self.alarm_key = alarm_key
         self.alarm_manager = alarm_manager
+
+        super().__init__(**kwargs)
         
     def dismiss_alarm(self):
         """Remove from active alarms and dismiss"""

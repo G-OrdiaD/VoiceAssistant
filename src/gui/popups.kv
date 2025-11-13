@@ -287,6 +287,47 @@
                         size: self.size
                         radius: [dp(8),]
 
+<DefaultSettingsPopup>:
+    size_hint: (0.6, 0.4)
+    title: 'Default Settings'
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [dp(20), dp(15), dp(20), dp(15)]
+        spacing: dp(15)
+        
+        Label:
+            text: getattr(root, 'confirmation_text', 'Default settings restored!')
+            font_size: dp(18)
+            font_name: app.font_family 
+            color: 0.1, 0.1, 0.1, 1
+            size_hint_y: 0.6
+            text_size: self.width, None
+            halign: 'center'
+            valign: 'middle'
+            
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.3
+            spacing: dp(15)
+            padding: [dp(30), 0]
+            
+            Button:
+                text: 'OK'
+                font_size: dp(18)
+                font_name: app.font_family
+                background_normal: ''
+                background_color: 0, 0, 0, 0
+                color: 1, 1, 1, 1
+                on_release: root.dismiss()
+                canvas.before:
+                    Color:
+                        rgba: 0.36, 0.52, 0.96, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(8),]
+
 <AlarmPopup>:
     size_hint: (0.8, 0.5)
     title: 'REMINDER'
@@ -311,7 +352,7 @@
         spacing: dp(15)
 
         Label:
-            text: '⏰ TASK REMINDER'
+            text: 'TASK REMINDER'
             font_size: dp(32)
             font_name: app.font_family
             bold: True

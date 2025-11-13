@@ -10,27 +10,26 @@ class TaskListItem(BoxLayout):
     __events__ = ('on_delete', 'on_complete')
     text = StringProperty("")
     task_id = NumericProperty(0)
-    font_size = NumericProperty(20)
-    font_family = StringProperty('Rubik')  # Changed to Rubik
+    font_size = NumericProperty()  
+    font_family = StringProperty()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def delete_task(self):
         self.dispatch('on_delete', self.task_id)
+    def on_delete(self, *args):
+        pass
     
     def mark_done(self):
         self.dispatch('on_complete', self.task_id)
-
-    def on_delete(self, *args):
-        pass
 
     def on_complete(self, *args):
         pass
 
 class TasksScreen(Screen):
-    font_size = NumericProperty(20)
-    font_family = StringProperty('Rubik')  # Changed to Rubik
+    font_size = NumericProperty()    # No default - will be set by app
+    font_family = StringProperty()   # No default - will be set by app
     high_contrast = BooleanProperty(False)
 
     def __init__(self, **kwargs):
@@ -40,6 +39,11 @@ class TasksScreen(Screen):
 
     def set_app_instance(self, app_instance):
         self.app = app_instance
+        # Sync properties when app instance is set
+        if self.app:
+            self.font_family = self.app.font_family
+            self.font_size = self.app.font_size
+            self.high_contrast = self.app.high_contrast
 
     def _post_init(self, dt):
         if self.app:
@@ -84,8 +88,8 @@ class TasksScreen(Screen):
         if not tasks:
             empty_label = Label(
                 text="No tasks yet",
-                font_size=dp(self.font_size), 
-                font_name=self.font_family, 
+                font_size=dp(self.font_size),
+                font_name=self.font_family,
                 color=(0.5, 0.5, 0.5, 1),
                 size_hint_y=None,
                 height=dp(100),
@@ -97,7 +101,9 @@ class TasksScreen(Screen):
         for task in tasks:
             item = TaskListItem(
                 text=f"{task.title}\nAt: {task.due_time}",
-                task_id=task.id
+                task_id=task.id,
+                font_family=self.font_family,  # Pass current font
+                font_size=self.font_size       # Pass current size
             )
             # Bind BOTH events to the SAME item
             item.bind(on_delete=self.delete_task)

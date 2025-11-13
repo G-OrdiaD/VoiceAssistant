@@ -72,8 +72,25 @@ class SpeechToTextEngine:
                     input_device_index=None
                 )
 
-                logger.info("Started listening for speech...")
-
+                logger.info("🎤 Listening for commands: 'read my tasks', 'delete task one', etc.")
+                
+                # ADDED: Set grammar hints for better recognition
+                try:
+                    # Common command phrases for elderly users
+                    grammar_phrases = [
+                        "read my tasks", "read my task", "show my tasks", "what are my tasks",
+                        "delete task one", "delete task two", "delete task three", 
+                        "delete task four", "delete task five", "delete task six",
+                        "delete task seven", "delete task eight", "delete task nine", "delete task ten",
+                        "remove task one", "remove task two", "remove task three",
+                        "cancel task one", "cancel task two", "cancel task three",
+                        "what tasks do i have", "tell me my tasks", "list my tasks"
+                    ]
+                    # Vosk allows setting grammar - this improves recognition of specific phrases
+                    grammar = '["' + '", "'.join(grammar_phrases) + '"]'
+                    self.recognizer.SetGrammar(grammar)
+                except Exception as grammar_error:
+                    logger.debug(f"Grammar setting not supported: {grammar_error}")
 
                 while self.is_listening:
                     try:

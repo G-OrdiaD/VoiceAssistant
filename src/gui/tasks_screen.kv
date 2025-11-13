@@ -134,7 +134,7 @@
         size_hint_x: 0.15
         background_color: 0, 0, 0, 0
         background_normal: ''
-        on_press: root.mark_complete_task()
+        on_press: root.mark_done()
         canvas.before:
             Color:
                 rgba: 0.2, 0.8, 0.2, 0.9
@@ -146,7 +146,7 @@
         Image:
             source: 'assets/icons/done.png'
             size_hint: None, None
-            size: dp(28), dp(28)
+            size: dp(48), dp(48)
             pos_hint: {'center_x': 0.5, 'center_y': 0.5}
             center: self.parent.center
 
@@ -168,6 +168,6 @@
         Image:
             source: 'assets/icons/delete.png'
             size_hint: None, None
-            size: dp(28), dp(28)
+            size: dp(48), dp(48)
             pos_hint: {'center_x': 0.5, 'center_y': 0.5}
             center: self.parent.center

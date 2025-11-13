@@ -3,13 +3,13 @@ from kivy.uix.screenmanager import Screen
 from kivy.properties import NumericProperty, StringProperty, BooleanProperty
 from kivy.clock import Clock
 from kivy.metrics import dp
-from .popups import SettingsConfirmationPopup
+from .popups import SettingsConfirmationPopup, DefaultSettingsPopup
 
 
 class SettingsScreen(Screen):
     # App-facing properties
-    font_size = NumericProperty(20)
-    font_family = StringProperty('Rubik')
+    font_size = NumericProperty()    
+    font_family = StringProperty()   
     high_contrast = BooleanProperty(False)
     current_voice = NumericProperty(0)
     voice_speed = StringProperty('Normal')
@@ -31,11 +31,11 @@ class SettingsScreen(Screen):
 
     def _sync_from_app(self):
         """Pull current settings from the app object."""
-        self.font_size = getattr(self.app, 'font_size', self.font_size)
-        self.font_family = getattr(self.app, 'font_family', self.font_family)
-        self.high_contrast = getattr(self.app, 'high_contrast', self.high_contrast)
-        self.current_voice = getattr(self.app, 'current_voice', self.current_voice)
-        self.voice_speed = getattr(self.app, 'voice_speed', self.voice_speed)
+        self.font_size = getattr(self.app, 'font_size', 20)
+        self.font_family = getattr(self.app, 'font_family', 'Rubik')
+        self.high_contrast = getattr(self.app, 'high_contrast', False)
+        self.current_voice = getattr(self.app, 'current_voice', 0)
+        self.voice_speed = getattr(self.app, 'voice_speed', 'Normal')
 
         # Update slider positions safely if ids exist
         if hasattr(self, 'ids'):
@@ -59,14 +59,14 @@ class SettingsScreen(Screen):
         self.font_family = text
         self.apply_font_preview()
 
-    def _apply_font_preview(self): 
+    def apply_font_preview(self): 
         """Apply font changes to settings screen for live preview"""
         if not hasattr(self, 'ids'):
             return
 
-          # Update ALL text elements in settings screen
+        # Update ALL text elements in settings screen
         for child in self.walk():
-            if hasattr(child, 'font_name'):
+            if hasattr(child, 'font_name') and self.font_family:
                 child.font_name = self.font_family
             if hasattr(child, 'font_size') and hasattr(child, 'text'):
                 # Apply size changes to appropriate elements
@@ -74,7 +74,7 @@ class SettingsScreen(Screen):
                     child.font_size = dp(self.font_size)
 
     def on_contrast_toggle(self, btn):
-        """Backward-compat if you still use a ToggleButton somewhere."""
+        """Toggle high contrast mode with toggle button"""
         self.high_contrast = (btn.state == 'down')
         btn.text = 'Enabled' if self.high_contrast else 'Disabled'
 
@@ -86,24 +86,33 @@ class SettingsScreen(Screen):
     def get_voice_labels(self):
         """Get dynamic voice labels based on available TTS voices"""
         from kivy.app import App
+
         try:
             app = App.get_running_app()
             if hasattr(app, 'tts_engine'):
-                count = app.tts_engine.get_voice_count()
-                return [f"Voice {i+1}" for i in range(count)]
-        except:
-            pass
-        return ["Eddy", "Karen", "Tessa", "GrandPa"]
+                result = ["Eddy", "Karen", "Tessa", "GrandPa"]
+                return result
+            else:
+                print("DEBUG: No tts_engine found")
+        except Exception as e:
+            print(f"DEBUG: Error in get_voice_labels: {e}")
 
-    def on_voice_change(self, _btn, voice_index: int):
+        fallback = ["Eddy", "Karen", "Tessa", "GrandPa"]
+        return fallback
+
+    def on_voice_change(self, _btn, voice_index: int): 
         """Voice changed - use index directly"""
         self.current_voice = voice_index
+
+        # Get the actual voice name for display
+        voice_names = self.get_voice_labels()
+        voice_name = voice_names[voice_index] if voice_index < len(voice_names) else f"Voice {voice_index + 1}"
         
         # Live preview with the actual voice
         if self.app and hasattr(self.app, 'tts_engine'):
             try:
                 self.app.tts_engine.set_voice(voice_index)
-                Clock.schedule_once(lambda dt: self.app.tts_engine.speak(f"Voice {voice_index + 1}"), 0.1)
+                Clock.schedule_once(lambda dt: self.app.tts_engine.speak(f"This is {voice_name}"), 0.1)
             except Exception as e:
                 logging.debug(f"Voice preview failed: {e}")
 
@@ -168,10 +177,12 @@ class SettingsScreen(Screen):
                 self.ids.font_size_label.text = f'{self.font_size} Px'
 
         # Confirmation popup
-        popup = SettingsConfirmationPopup()
+        popup = DefaultSettingsPopup()
         popup.title = 'Default Settings'
         popup.confirmation_text = 'Default settings saved'
         popup.open()
+
+        self.app.tts_engine.speak("Default settings restored")
 
     def save_settings(self):
         if self.app:
@@ -181,15 +192,14 @@ class SettingsScreen(Screen):
             self.app.current_voice = self.current_voice
             self.app.voice_speed = self.voice_speed
 
-            # Apply globally if your app exposes this
-            if hasattr(self.app, 'apply_settings_globally'):
-                try:
-                    self.app.apply_settings_globally()
-                except Exception:
-                    logging.exception("apply_settings_globally failed")
+            # Apply globally immediately
+            try:
+                self.app.apply_settings_globally()
+            except Exception as e:
+                logging.error(f"Error applying global settings: {e}")
 
+            
             popup = SettingsConfirmationPopup()
-            popup.confirmation_text = 'Settings saved'
             popup.open()
 
         logging.info(
@@ -197,7 +207,8 @@ class SettingsScreen(Screen):
             f"Contrast: {self.high_contrast}, Voice: {self.current_voice}, "
             f"Speed: {self.voice_speed}"
         )
-
+        self.app.tts_engine.speak("Settings saved")
+        
     def go_back(self):
         if self.app and hasattr(self.app, 'show_main_screen'):
             self.app.show_main_screen()

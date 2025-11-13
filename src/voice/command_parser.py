@@ -14,7 +14,6 @@ class CommandParser:
                 r'(?:remember|task) (.+?) (?:at|on|by)\s*(.+)',
                 r'(?:i have to|i must) (.+?) (?:at|on|by)\s*(.+)',
                 r'remind me (.+?) (?:at|on|by)\s*(.+)',
-                r'(.+?) (?:at|on|by)\s*(.+)',
                 r'(?:don\'t forget to|please remember to) (.+?) (?:at|on|by)\s*(.+)',
             ],
             'relative_time': [
@@ -26,8 +25,18 @@ class CommandParser:
                 r'(?:what do i have|what\'s) scheduled?',
             ],
             'delete_task': [
+                r'^(?:delete|remove|cancel|clear|erase)\s+(?:the\s*)?(?:task\s*)?(.*?)(?:\s+(?:at|on|by|for)\s+.+)?$',
                 r'(?:delete|forget about|cancel) (?:the )?task (?:for )?(.+)',
                 r'(?:delete|remove|cancel) (.+) task',
+                r'^(?:delete|remove|cancel) (?:my |the )?(.+)$',
+                r'^(?:forget about|don\'t remind me about) (.+)$',
+                r'^(?:clear|erase) (.+)$',
+                r'^(?:delete|remove|cancel) (.+?) (?:at|on|by|for) .+$',
+            ],
+            'mark_done': [
+                r'^(?:done with|completed|finished) (?:my |the )?(.+)$',
+                r'^(?:mark|set) (.+) as done$',
+                r'^(?:task|reminder) (.+) (?:is |are )?(?:done|completed)$',
             ]
         }
 
@@ -36,18 +45,35 @@ class CommandParser:
         text = text.lower().strip()
         logger.info(f"Parsing command: '{text}'")
 
-        # 1. DELETE commands (HIGHEST PRIORITY)
+        # 1. DELETE commands (strict precedence)
         delete_result = self._parse_delete_command(text)
         if delete_result:
-            command_type, task_desc = delete_result
-            formatted_task = self.format_task_text(task_desc)
-            return {"type": command_type, "task": formatted_task}
+            return delete_result
 
-        # 2. LIST commands
+        # Guard: if it clearly starts with a delete-type verb but none of the
+        # specific patterns matched, treat as DELETE with a best-effort target
+        if self._looks_like_delete(text):
+            fallback = self._fallback_delete(text)
+            if fallback:
+                return fallback
+
+        # 2. MARK DONE commands
+        done_result = self._parse_mark_done_command(text)
+        if done_result:
+            return done_result
+
+        # 3. LIST commands
         if self._is_list_tasks_command(text):
             return {"type": "LIST_TASKS"}
 
-        # 3. ADD commands (LOWEST PRIORITY)
+        # 4. RELATIVE TIME commands
+        relative_result = self._parse_relative_time(text)
+        if relative_result:
+            task, time = relative_result
+            formatted_task = self.format_task_text(task)
+            return {"type": "ADD_TASK", "task": formatted_task, "time": time}
+
+        # 5. ADD commands
         for pattern in self.patterns['set_task']:
             match = re.search(pattern, text)
             if match:
@@ -74,14 +100,60 @@ class CommandParser:
         logger.warning(f"No valid pattern matched for: {text}")
         return None
 
-    def _parse_delete_command(self, text: str) -> Optional[Tuple[str, str]]:
-        """Parse delete task command - returns tuple for internal use"""
+    def _parse_delete_command(self, text: str) -> Optional[dict]:
+        """Parse delete task command - returns formatted dict"""
         for pattern in self.patterns['delete_task']:
             match = re.search(pattern, text)
             if match:
                 task_to_delete = match.group(1).strip()
-                logger.info(f"Parsed delete command for: '{task_to_delete}'")
-                return "DELETE_TASK", task_to_delete
+                # Clean trivial fillers like 'task', 'my task', etc.
+                task_to_delete = re.sub(r'^(?:my|the)\s+task\s*', '', task_to_delete).strip()
+                task_to_delete = re.sub(r'^\btask\b\s*', '', task_to_delete).strip()
+                if not task_to_delete:
+                    # If we end up with empty (e.g., "delete task"), keep as-is to let caller handle
+                    task_to_delete = 'task'
+                formatted_task = self.format_task_text(task_to_delete)
+                logger.info(f"Parsed delete command for: '{formatted_task}'")
+                return {"type": "DELETE_TASK", "task": formatted_task}
+        return None
+
+    def _looks_like_delete(self, text: str) -> bool:
+        """Heuristic: starts with a delete-type verb ⇒ do not allow fall-through to ADD."""
+        return bool(re.match(r'^(?:delete|remove|cancel|clear|erase|forget(?: about)?)\b', text))
+
+    def _fallback_delete(self, text: str) -> Optional[dict]:
+        """
+        Best-effort extraction for delete if explicit patterns didn’t match.
+        Strips leading delete-verb and trailing time clause.
+        """
+        # Drop leading verb
+        m = re.match(r'^(?:delete|remove|cancel|clear|erase|forget(?: about)?)\s+(.*)$', text)
+        if not m:
+            return None
+        core = m.group(1).strip()
+
+        # Remove common fillers like "the task", "my task"
+        core = re.sub(r'^(?:the|my)\s+task\s*', '', core).strip()
+        core = re.sub(r'^\btask\b\s*', '', core).strip()
+
+        # Strip trailing time clause: "at/on/by/for …"
+        core = re.sub(r'\s+(?:at|on|by|for)\s+.*$', '', core).strip()
+
+        if not core:
+            core = 'task'
+        formatted = self.format_task_text(core)
+        logger.info(f"Fallback delete target: '{formatted}'")
+        return {"type": "DELETE_TASK", "task": formatted}
+
+    def _parse_mark_done_command(self, text: str) -> Optional[dict]:
+        """Parse mark as done commands"""
+        for pattern in self.patterns['mark_done']:
+            match = re.search(pattern, text)
+            if match:
+                task_to_mark = match.group(1).strip()
+                formatted_task = self.format_task_text(task_to_mark)
+                logger.info(f"Parsed mark done command for: '{formatted_task}'")
+                return {"type": "MARK_DONE", "task": formatted_task}
         return None
 
     def _is_list_tasks_command(self, text: str) -> bool:

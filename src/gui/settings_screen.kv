@@ -171,16 +171,16 @@
                     height: dp(46)
                     spacing: dp(10)
                     Chip:
-                        text: root.get_voice_labels()[0] if len(root.get_voice_labels()) > 0 else "Voice 1"
+                        text: root.get_voice_labels()[0] if len(root.get_voice_labels()) > 0 else "Eddy"
                         on_release: root.on_voice_change(self, 0)
                     Chip:
-                        text: root.get_voice_labels()[1] if len(root.get_voice_labels()) > 1 else "Voice 2" 
+                        text: root.get_voice_labels()[1] if len(root.get_voice_labels()) > 1 else "Karen" 
                         on_release: root.on_voice_change(self, 1)
                     Chip:
-                        text: root.get_voice_labels()[2] if len(root.get_voice_labels()) > 2 else "Voice 3"
+                        text: root.get_voice_labels()[2] if len(root.get_voice_labels()) > 2 else "Tessa"
                         on_release: root.on_voice_change(self, 2)
                     Chip:
-                        text: root.get_voice_labels()[3] if len(root.get_voice_labels()) > 3 else "Voice 4"
+                        text: root.get_voice_labels()[3] if len(root.get_voice_labels()) > 3 else "GrandPa"
                         on_release: root.on_voice_change(self, 3)
 
                 # ---- Voice Speed (slider: Slow/Normal/Fast) ----

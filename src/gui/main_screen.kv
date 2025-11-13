@@ -1,250 +1,6 @@
 #:kivy 2.3.1
 #:import dp kivy.metrics.dp
 
-<BasePopup>:
-    background: ''
-    separator_color: 0.4, 0.5, 0.8, 1
-    title_align: 'center'
-    
-    canvas.before:
-        Color:
-            rgba: 0.96, 0.96, 0.98, 1
-        RoundedRectangle:
-            pos: self.pos
-            size: self.size
-            radius: [dp(20),]
-        Color:
-            rgba: 0.8, 0.8, 0.85, 1
-        Line:
-            width: dp(2)
-            rounded_rectangle: [self.x, self.y, self.width, self.height, dp(20)]
-
-<AddTaskPopup>:
-    size_hint: (0.8, 0.5)
-    title: 'Add Task'
-    title_size: dp(20)
-
-    BoxLayout:
-        orientation: 'vertical'
-        padding: [dp(20), dp(15), dp(20), dp(15)]
-        spacing: dp(15)
-
-        Label:
-            text: 'Enter your task:'
-            font_size: dp(18)
-            font_name: app.font_family  
-            color: 0.3, 0.3, 0.4, 1
-            size_hint_y: 0.12
-            text_size: self.width, None
-            halign: 'center'
-            valign: 'middle'
-
-        TextInput:
-            id: task_input
-            size_hint_y: 0.18
-            hint_text: 'e.g., Call Daughter...'
-            font_name: app.font_family  
-            multiline: False
-            background_normal: ''
-            background_active: ''
-            background_color: 0.95, 0.95, 0.95, 1
-            foreground_color: 0.2, 0.2, 0.2, 1
-            font_size: dp(16)
-            padding: [dp(10), dp(8)]
-            canvas.before:
-                Color:
-                    rgba: 0.7, 0.7, 0.7, 1
-                Line:
-                    width: dp(1.5)
-                    rounded_rectangle: [self.x, self.y, self.width, self.height, dp(6)]
-
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: 0.18
-            spacing: dp(10)
-            
-            Label:
-                text: 'TIME:'
-                font_size: dp(20)
-                font_name: app.font_family
-                color: 0.3, 0.3, 0.4, 1
-                size_hint_x: 0.25
-                text_size: self.width, None
-                halign: 'center'
-                valign: 'middle'
-
-            TextInput:
-                id: time_input
-                size_hint_x: 0.15
-                hint_text: '06:00'
-                text: ''
-                font_name: app.font_family  
-                input_filter: 'int'
-                multiline: False
-                background_normal: ''
-                background_active: ''
-                background_color: 0.95, 0.95, 0.95, 1
-                foreground_color: 0.2, 0.2, 0.2, 1
-                padding: [dp(8), dp(8)]
-                font_size: dp(16)
-                canvas.before:
-                    Color:
-                        rgba: 0.7, 0.7, 0.7, 1
-                    Line:
-                        width: dp(1.5)
-                        rounded_rectangle: [self.x, self.y, self.width, self.height, dp(6)]
-
-            Spinner:
-                id: am_pm_spinner
-                size_hint_x: 0.14
-                text: 'AM'
-                values: ['AM', 'PM']
-                font_name: app.font_family  
-                background_normal: ''
-                background_color: 0.95, 0.95, 0.95, 1
-                font_size: dp(14)
-                canvas.before:
-                    Color:
-                        rgba: 0.7, 0.7, 0.7, 1
-                    Line:
-                        width: dp(1.5)
-                        rounded_rectangle: [self.x, self.y, self.width, self.height, dp(6)]
-
-            Widget:
-                size_hint_x: 0.3
-
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: 0.2
-            spacing: dp(15)
-            padding: [dp(20), dp(5), dp(20), 0]
-
-            Button:
-                text: 'Cancel'
-                font_size: dp(18)
-                font_name: app.font_family  
-                background_normal: ''
-                background_color: 0, 0, 0, 0
-                color: 1, 1, 1, 1
-                on_press: root.dismiss()
-                canvas.before:
-                    Color:
-                        rgba: 0.9, 0.3, 0.3, 1
-                    RoundedRectangle:
-                        pos: self.pos
-                        size: self.size
-                        radius: [dp(8),]
-
-            Button:
-                text: 'Save Task'
-                font_size: dp(18)
-                font_name: app.font_family  
-                background_normal: ''
-                background_color: 0, 0, 0, 0
-                color: 1, 1, 1, 1
-                on_press: root.save_task()
-                canvas.before:
-                    Color:
-                        rgba: 0.36, 0.52, 0.96, 1
-                    RoundedRectangle:
-                        pos: self.pos
-                        size: self.size
-                        radius: [dp(8),]
-
-<ConfirmationPopup>:
-    size_hint: (0.8, 0.4)
-    title: root.popup_title
-    title_size: dp(18)
-
-    BoxLayout:
-        orientation: 'vertical'
-        padding: [dp(20), dp(15), dp(20), dp(15)]
-        spacing: dp(15)
-
-        Label:
-            text: root.confirmation_text
-            font_size: dp(18)
-            font_name: app.font_family  
-            color: 0.3, 0.3, 0.4, 1
-            size_hint_y: 0.6
-            text_size: self.width, None
-            halign: 'center'
-            valign: 'middle'
-
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: 0.3
-            spacing: dp(15)
-            padding: [dp(30), 0]
-
-            Button:
-                text: 'OK'
-                font_size: dp(20)
-                font_name: app.font_family 
-                background_normal: ''
-                background_color: 0, 0, 0, 0
-                color: 1, 1, 1, 1
-                on_press: root.dismiss()
-                canvas.before:
-                    Color:
-                        rgba: 0.36, 0.52, 0.96, 1
-                    RoundedRectangle:
-                        pos: self.pos
-                        size: self.size
-                        radius: [dp(8),]
-
-<ListeningPopup>:
-    size_hint: (0.8, 0.4)
-    title: 'Listening...'
-    title_size: dp(20)
-
-    BoxLayout:
-        orientation: 'vertical'
-        padding: [dp(20), dp(15), dp(20), dp(15)]
-        spacing: dp(15)
-
-        Label:
-            text: 'Speak your command now'
-            font_size: dp(18)
-            font_name: app.font_family 
-            color: 0.1, 0.1, 0.1, 1
-            size_hint_y: 0.3
-            text_size: self.width, None
-            halign: 'center'
-            valign: 'middle'
-
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: 0.4
-            padding: [dp(20), 0]
-
-            Image:
-                source: 'assets/icons/listen.png'
-                size_hint_x: 0.4
-                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                fit_mode: 'contain'
-
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: 0.2
-            spacing: dp(15)
-            padding: [dp(30), 0]
-
-            Button:
-                text: 'Cancel'
-                font_size: dp(18)
-                font_name: app.font_family  
-                background_normal: ''
-                background_color: 0, 0, 0, 0
-                color: 1, 1, 1, 1
-                on_press: root.dismiss()
-                canvas.before:
-                    Color:
-                        rgba: 0.8, 0.2, 0.2, 1
-                    RoundedRectangle:
-                        pos: self.pos
-                        size: self.size
-                        radius: [dp(8),]
 
 <MainScreen>:
     canvas.before:
@@ -328,7 +84,7 @@
         # Speak Section properly centered
         BoxLayout:
             orientation: 'vertical'
-            size_hint_y: 0.5  # Reduced to make space for action buttons
+            size_hint_y: 0.5 
             spacing: dp(10)
             
             Widget:
@@ -371,7 +127,7 @@
 
                 Label:
                     text: 'SPEAK'
-                    font_size: dp(36)
+                    font_size: dp(32)
                     font_name: app.font_family  
                     bold: True
                     color: (0.6, 0.4, 0.2, 1) if not root.high_contrast else (0, 0, 0, 1)
@@ -384,12 +140,12 @@
             Widget:
                 size_hint_y: 0.2
 
-        # Action Buttons - USING REGULAR BUTTONS
+        # Action Buttons
         BoxLayout:
             orientation: 'horizontal'
-            size_hint_y: 0.15  # Increased height
-            spacing: dp(15)    # More spacing
-            padding: [dp(20), dp(10), dp(20), dp(5)]  # Better padding, moved up
+            size_hint_y: 0.15  
+            spacing: dp(15)  
+            padding: [dp(20), dp(10), dp(20), dp(5)] 
 
             Button:
                 id: view_all_btn
@@ -413,13 +169,13 @@
                     
                     Image:
                         source: 'assets/icons/view.png'
-                        size: dp(40), dp(40)  # Smaller icon
+                        size: dp(48), dp(48)  
                         size_hint: None, None
                         pos_hint: {'center_y': 0.5}
                     
                     Label:
                         text: 'View All Tasks'
-                        font_size: dp(16)  # Smaller font
+                        font_size: dp(20) 
                         font_name: app.font_family
                         bold: True
                         color: 1, 1, 1, 1
@@ -450,13 +206,13 @@
                     
                     Image:
                         source: 'assets/icons/add.png'
-                        size: dp(40), dp(40)  # Smaller icon
+                        size: dp(48), dp(48)  
                         size_hint: None, None
                         pos_hint: {'center_y': 0.5}
                     
                     Label:
                         text: 'Add Tasks'
-                        font_size: dp(16)  # Smaller font
+                        font_size: dp(20)  
                         font_name: app.font_family  
                         bold: True
                         color: 1, 1, 1, 1
@@ -495,7 +251,7 @@
         halign: 'left'
         valign: 'middle'
 
-    # Done Button - CENTERED ICON
+    # Done Button 
     Button:
         size_hint_x: 0.15
         background_color: 0, 0, 0, 0
@@ -512,7 +268,7 @@
         Image:
             source: 'assets/icons/done.png'
             size_hint: None, None
-            size: dp(28), dp(28)  
+            size: dp(48), dp(48)  
             pos_hint: {'center_x': 0.5, 'center_y': 0.5}
             center: self.parent.center
 
@@ -533,6 +289,6 @@
         Image:
             source: 'assets/icons/delete.png'
             size_hint: None, None
-            size: dp(28), dp(28) 
+            size: dp(48), dp(48) 
             pos_hint: {'center_x': 0.5, 'center_y': 0.5}
             center: self.parent.center

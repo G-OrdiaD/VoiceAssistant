@@ -5,7 +5,7 @@ GUI components for the Voice Assistant MVP
 from .main_screen import MainScreen, TaskItem
 from .tasks_screen import TasksScreen
 from .settings_screen import SettingsScreen
-from .popups import ConfirmationPopup, ListeningPopup, AddTaskPopup, SettingsConfirmationPopup
+from .popups import ConfirmationPopup, ListeningPopup, AddTaskPopup, SettingsConfirmationPopup, AlarmPopup
 
 __all__ = [
     'MainScreen',
@@ -15,5 +15,6 @@ __all__ = [
     'ListeningPopup',
     'TasksScreen',
     'AddTaskPopup',
-    'SettingsConfirmationPopup'
+    'SettingsConfirmationPopup',
+    'AlarmPopup'
 ]
