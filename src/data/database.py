@@ -1,19 +1,17 @@
 import sqlite3
 import logging
 from typing import List
-from dataclasses import dataclass
+from .models import Task
 
-# ---- Data model ----
-@dataclass
-class Task:
-    id: int
-    title: str
-    due_time: str
-    created_at: str
-    is_completed: bool
 
-# ---- Database manager ----
 class DatabaseManager:
+    """
+    SQLite-based storage for tasks.
+
+    Security notes:
+    - Uses parameterised queries (no string formatting).
+    - DB path is provided by the app and not user-controlled.
+    """
     def __init__(self, db_path: str):
         self.db_path = db_path
         self._init_db()
@@ -31,7 +29,6 @@ class DatabaseManager:
                         is_completed INTEGER DEFAULT 0
                     );
                 """)
-                # Small quality-of-life index to keep ordering by due_time snappy
                 conn.execute("""
                     CREATE INDEX IF NOT EXISTS idx_tasks_due_time
                     ON tasks (due_time);
@@ -41,8 +38,7 @@ class DatabaseManager:
             logging.error(f"Database initialization error: {e}")
             raise
 
-    # ---- CRUD ----
-    def add_task(self, title: str, due_time: str) -> bool: 
+    def add_task(self, title: str, due_time: str) -> bool:
         """Add a new task."""
         try:
             with sqlite3.connect(self.db_path) as conn:

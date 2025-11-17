@@ -2,23 +2,6 @@
 #:import dp kivy.metrics.dp
 
 
-# Rounded primary button
-<ModernButton@Button>:
-    size_hint: None, None
-    size: dp(110), dp(42)
-    background_normal: ''
-    background_color: 0,0,0,0
-    color: 1,1,1,1
-    font_size: dp(18)
-    font_name: app.font_family  
-    canvas.before:
-        Color:
-            rgba: (0.36, 0.52, 0.96, 1)
-        RoundedRectangle:
-            pos: self.pos
-            size: self.size
-            radius: [dp(12),]
-
 # Rounded chip used for option selections (Font/Voice)
 <Chip@Button>:
     size_hint_y: None
@@ -56,10 +39,28 @@
             size_hint_y: None
             height: dp(52)
             padding: [0, 0, 0, 0]
-            ModernButton:
-                text: "HOME"
-                font_name: app.font_family  
+
+            Button:
+                text: 'HOME'
+                font_size: dp(20)
+                font_name: app.font_family
+                size_hint_x: 0.2
+                size_hint_y: None
+                height: dp(35)
                 on_release: root.go_back()
+                color: 1, 1, 1, 1
+                background_normal: ''
+                background_color: 0, 0, 0, 0
+                canvas.before:
+                    Color:
+                        rgba: 0.36, 0.52, 0.96, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(8),]
+            
+            Widget:
+                size_hint_x: 1
 
         # Big title
         Label:

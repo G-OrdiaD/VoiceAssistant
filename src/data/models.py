@@ -4,7 +4,7 @@ from typing import Optional
 
 @dataclass
 class Task:
-    id: Optional[int]
+    id: int
     title: str
     due_time: str  # Store as string for simplicity
     created_at: str

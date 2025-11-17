@@ -47,6 +47,9 @@ project_root = os.path.dirname(current_dir)
 
 
 def register_application_fonts():
+    """
+    Register all application fonts.
+    """
     try:
         abs_current_dir = os.path.dirname(os.path.abspath(__file__))
         assets_dir = os.path.join(os.path.dirname(abs_current_dir), 'assets')
@@ -87,7 +90,6 @@ def register_application_fonts():
             fn_italic=rubik_italic,
             fn_bolditalic=rubik_bolditalic
         )
-        print("✅ Rubik font registered")
 
         LabelBase.register(
             name='Arial',
@@ -95,7 +97,6 @@ def register_application_fonts():
             fn_bold=arial_bold,
             fn_italic=arial_italic
         )
-        print("✅ Arial font registered")
 
         LabelBase.register(
             name='BalsamiqSans',
@@ -104,7 +105,6 @@ def register_application_fonts():
             fn_italic=balsamiq_italic,
             fn_bolditalic=balsamiq_bolditalic
         )
-        print("✅ BalsamiqSans font registered")
 
         LabelBase.register(
             name='CrimsonPro',
@@ -113,19 +113,17 @@ def register_application_fonts():
             fn_italic=crimson_italic,
             fn_bolditalic=crimson_black
         )
-        print("✅ CrimsonPro font registered")
         return True
 
     except Exception as e:
         print(f"❌ Failed to register fonts: {e}")
         return False
 
+
 # Register application fonts
 font_registered = register_application_fonts()
-
 print("✅ Registered fonts:", LabelBase._fonts.keys())
 
-# If fonts failed to register, use system fonts as fallback
 if not font_registered:
     print("⚠️ Using system fonts as fallback")
 
@@ -134,6 +132,7 @@ Builder.load_file('gui/main_screen.kv')
 Builder.load_file('gui/tasks_screen.kv')
 Builder.load_file('gui/settings_screen.kv')
 Builder.load_file('gui/popups.kv')
+
 
 class VoiceAssistantApp(App):
     def __init__(self, **kwargs):
@@ -144,30 +143,47 @@ class VoiceAssistantApp(App):
         self.tts_engine = None
         self.command_parser = None
         self.alarm_manager = None
+
+        # Global UI/voice settings
         self.font_family = 'Rubik'
         self.font_size = 20
         self.high_contrast = False
         self.current_voice = 0
         self.voice_speed = 'Normal'
+
+        # Track last reset date in-memory for safety
+        self._last_reset_date = None
+
         self._schedule_daily_reset()
 
-
     def _initialize_components(self):
+        """
+        Initialize DB, STT, TTS, parser, alarms.
+        """
         try:
-            db_path = os.path.join(os.path.dirname(__file__), 'data', 'tasks.db')
+            db_path = os.path.join(project_root, 'tasks.db')
             self.db_manager = DatabaseManager(db_path)
-            model_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'models', 'vosk-model-small-en-gb-0.15')
+
+            model_path = os.path.join(
+                os.path.dirname(__file__),
+                '..',
+                'assets',
+                'models',
+                'vosk-model-small-en-gb-0.15'
+            )
             self.stt_engine = SpeechToTextEngine(model_path)
             self.tts_engine = TextToSpeechEngine()
             self.command_parser = CommandParser()
             self.alarm_manager = AlarmManager(self)
+
             logging.info("All components initialized successfully")
             return True
         except Exception as e:
             logging.error("Failed to initialize components: %s", e)
             return False
 
-    def build(self): # Build the main application
+    def build(self):
+        """Build the main application."""
         Window.clearcolor = (1, 1, 1, 1)
 
         self.screen_manager = ScreenManager()
@@ -198,44 +214,51 @@ class VoiceAssistantApp(App):
 
         return self.screen_manager
 
-
     def on_start(self):
         if self.alarm_manager:
             self.alarm_manager.start()
+        # Safety: ensure reset has been run at least once today
+        Clock.schedule_once(lambda dt: self._reset_if_new_day(), 5)
 
     def show_main_screen(self):
-        """Show the main screen"""
+        """Show the main screen and refresh tasks."""
         self.screen_manager.current = 'main'
-        # Refresh tasks when returning to main screen
         main_screen = self.screen_manager.get_screen('main')
         if hasattr(main_screen, 'load_tasks'):
             main_screen.load_tasks()
 
     def show_tasks_screen(self):
-        """Show all tasks screen"""
+        """Show all tasks screen and refresh tasks list."""
         self.screen_manager.current = 'tasks'
-        # Refresh tasks list
         tasks_screen = self.screen_manager.get_screen('tasks')
         if hasattr(tasks_screen, 'load_all_tasks'):
             tasks_screen.load_all_tasks()
 
     def show_settings_screen(self):
-        """Show settings screen"""
+        """Show settings screen."""
         self.screen_manager.current = 'settings'
 
-
-    def apply_settings_globally(self):  # apply settings across all screens
-        """Apply current settings to all screens"""
+    def apply_settings_globally(self):
+        """
+        Apply current settings to all screens.
+        """
         for screen_name in ['main', 'tasks', 'settings']:
             screen = self.screen_manager.get_screen(screen_name)
             if hasattr(screen, 'apply_settings'):
                 screen.apply_settings(self.font_family, self.font_size, self.high_contrast)
 
+    # -------- Daily reset logic --------
     def _schedule_daily_reset(self):
+        """
+        Background thread: waits until next midnight, then clears all tasks.
+        """
         def reset_tasks():
             while True:
                 try:
                     now = datetime.now()
+                    today_str = now.strftime("%Y-%m-%d")
+                    self._last_reset_date = today_str
+
                     next_midnight = (now + timedelta(days=1)).replace(
                         hour=0, minute=0, second=0, microsecond=0
                     )
@@ -253,7 +276,23 @@ class VoiceAssistantApp(App):
         reset_thread = threading.Thread(target=reset_tasks, daemon=True)
         reset_thread.start()
 
+    def _reset_if_new_day(self):
+        """
+        Safety check: if app runs across multiple days without closing,
+        ensure that a reset has been done at least once per calendar day.
+        """
+        try:
+            now = datetime.now()
+            today_str = now.strftime("%Y-%m-%d")
+            if self._last_reset_date != today_str:
+                logging.info("Detected new day without recorded reset. Clearing tasks now.")
+                self._reset_all_tasks()
+                self._last_reset_date = today_str
+        except Exception as e:
+            logging.error(f"Error in _reset_if_new_day: {e}")
+
     def _reset_all_tasks(self):
+        """Delete all tasks from DB and refresh UI."""
         try:
             if self.db_manager:
                 tasks = self.db_manager.get_all_tasks()
@@ -263,7 +302,7 @@ class VoiceAssistantApp(App):
                     self.db_manager.delete_task(task.id)
 
                 Clock.schedule_once(lambda dt: self._update_ui_after_reset(tasks_cleared))
-                logging.info(f"Midnight Reset: Cleared {tasks_cleared} tasks at midnight")
+                logging.info(f"Midnight Reset: Cleared {tasks_cleared} tasks at reset point")
         except Exception as e:
             logging.error(f"Error in midnight reset: {e}")
 
@@ -277,7 +316,8 @@ class VoiceAssistantApp(App):
             if hasattr(tasks_screen, 'load_all_tasks'):
                 tasks_screen.load_all_tasks()
 
-    def on_stop(self): # Clean up resources on app exit
+    def on_stop(self):
+        """Clean up resources on app exit."""
         if self.stt_engine:
             self.stt_engine.stop_listening()
         if self.tts_engine:
@@ -287,6 +327,9 @@ class VoiceAssistantApp(App):
 
 
 class AlarmManager:
+    """
+    Monitors tasks and triggers alarms at the right due_time.
+    """
     def __init__(self, app):
         self.app = app
         self.running = False
@@ -348,13 +391,14 @@ class AlarmManager:
         Clock.schedule_once(lambda dt: self._show_alarm_popup(task, alarm_key))
 
     def _show_alarm_popup(self, task, alarm_key):
+        """
+        Show alarm popup and speak the reminder.
+        TTS is wrapped with error handling to avoid crashing on PaMacCore issues.
+        """
         try:
             from gui.popups import AlarmPopup
 
             alarm_popup = AlarmPopup(task=task, alarm_key=alarm_key, alarm_manager=self)
-
-            Clock.schedule_once(lambda dt: alarm_popup.dismiss_alarm(), 30)
-
             alarm_popup.open()
 
             if getattr(self.app, "tts_engine", None):
@@ -365,6 +409,7 @@ class AlarmManager:
                 except Exception as e:
                     logging.error(f"Error in alarm TTS: {e}")
 
+            # Re-check in 5 minutes if not acknowledged
             def retrigger_if_active(dt):
                 if alarm_key in self.active_alarms:
                     logging.info(f"Re-triggering alarm for task: {task.title}")
