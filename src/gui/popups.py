@@ -120,35 +120,9 @@ class DefaultSettingsPopup(BasePopup):
         self.title = 'Default Settings'
         self.size_hint = (0.6, 0.4)
 
-
 class AlarmPopup(BasePopup):
     """
     Popup for active alarms.
-
-    Receives:
-    - task: Task model
-    - alarm_key: unique alarm ID
-    - alarm_manager: to remove from active_alarms
-    """
-    def __init__(self, task, alarm_key, alarm_manager, **kwargs):
-        self.task = task
-        self.alarm_key = alarm_key
-        self.alarm_manager = alarm_manager
-        super().__init__(**kwargs)
-
-    def dismiss_alarm(self):
-        """Remove from active alarms and dismiss."""
-        if self.alarm_key in self.alarm_manager.active_alarms:
-            del self.alarm_manager.active_alarms[self.alarm_key]
-        self.dismiss()
-
-
-
-
-class AlarmPopup(BasePopup):
-    """
-    Popup for active alarms.
-    Expects KV rule <AlarmPopup> for layout.
     """
     task = ObjectProperty(None)
     alarm_key = StringProperty("")

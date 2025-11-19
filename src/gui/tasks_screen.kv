@@ -24,10 +24,10 @@
             # Home button
             Button:
                 text: 'HOME'
-                font_size: dp(18)
+                font_size: dp(20)
                 font_name: app.font_family 
                 size_hint: None, None
-                size: dp(110), dp(42)
+                size: dp(100), dp(42)
                 on_press: root.go_back()
                 color: 1, 1, 1, 1
                 background_normal: ''
@@ -38,7 +38,7 @@
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
-                        radius: [dp(12),]
+                        radius: [dp(8),]
             
             Widget:  # spacer
                 size_hint_x: 1

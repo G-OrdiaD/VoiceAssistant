@@ -101,3 +101,21 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logging.error(f"Error completing task: {e}")
             return False
+    
+    def clear_old_tasks(self) -> bool:
+        """
+        Remove tasks that were created on a previous calendar day.
+        Call this once on app startup, before any screen loads, so the user
+        never sees yesterday's tasks flash on screen.
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    DELETE FROM tasks
+                    WHERE DATE(created_at) < DATE('now')
+                """)
+                conn.commit()
+            return True
+        except sqlite3.Error as e:
+            logging.error(f"Error clearing old tasks: {e}")
+            return False

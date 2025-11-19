@@ -97,7 +97,7 @@
 
             Spinner:
                 id: am_pm_spinner
-                size_hint_x: 0.12
+                size_hint_x: 0.1
                 text: 'AM'
                 values: ['AM', 'PM']
                 font_name: app.font_family  
@@ -363,8 +363,8 @@
             valign: 'middle'
 
         Label:
-            text: root.task.title + '\\n\\nTime: ' + root.task.due_time
-            font_size: dp(18)
+            text: root.task.title + '\n\nTime: ' + root.task.due_time
+            font_size: dp(20)
             font_name: app.font_family
             color: 0.2, 0.2, 0.2, 1
             size_hint_y: 0.5
@@ -374,8 +374,10 @@
 
         Button:
             text: 'Dismiss'
-            font_size: dp(18)
+            font_size: dp(20)
             font_name: app.font_family
+            size_hint_y: 0.2      
+            height: dp(40)       
             background_normal: ''
             background_color: 0, 0, 0, 0
             color: 1, 1, 1, 1

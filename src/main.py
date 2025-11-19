@@ -143,7 +143,7 @@ class VoiceAssistantApp(App):
         self.tts_engine = None
         self.command_parser = None
         self.alarm_manager = None
-
+        
         # Global UI/voice settings
         self.font_family = 'Rubik'
         self.font_size = 20
@@ -163,6 +163,7 @@ class VoiceAssistantApp(App):
         try:
             db_path = os.path.join(project_root, 'tasks.db')
             self.db_manager = DatabaseManager(db_path)
+            self.db_manager.clear_old_tasks()
 
             model_path = os.path.join(
                 os.path.dirname(__file__),
@@ -368,22 +369,71 @@ class AlarmManager:
                 time.sleep(60)
 
     def _get_current_time(self):
+        """
+        Return current time as a string like '6:35 PM'
+        (no leading zero on hour, AM/PM in upper case).
+        """
         now = datetime.now()
-        return now.strftime("%I:%M %p").upper().replace(' 0', ' ')
+        return now.strftime("%I:%M %p").lstrip("0").upper() # '%I' gives 01–12, lstrip('0') removes leading 0 for 01–09
+
 
     def _should_trigger_alarm(self, task, current_time):
-        task_time = task.due_time.upper().strip()
-        current_time = current_time.strip()
+        """
+        Decide whether to trigger an alarm for this task at current_time.
 
-        alarm_key = f"{task.id}_{task_time}"
+        Supports formats like:
+        - '06:35 PM', '6:35PM', '06:35PM', '6:35 pm', '6 PM'
+        """
 
+        task_time_raw = (task.due_time or " ").upper().strip()
+        current_time_raw = (current_time or " ").upper().strip()
+
+        # Use the same alarm key style used in _trigger_alarm
+        alarm_key = f"{task.id}_{task_time_raw}"
+
+        # Already active alarm? Then don't re-trigger from here.
         if alarm_key in self.active_alarms:
             return False
 
-        task_time_clean = task_time.replace(' ', '')
-        current_time_clean = current_time.replace(' ', '')
+        def to_minutes(t_str: str):
+            """
+            Convert a time string to minutes since midnight.
+            Returns None if parsing fails.
 
-        return task_time_clean == current_time_clean
+            Handles:
+            - '6:35 PM', '06:35 PM', '6:35PM', '06:35PM', '6:35 pm'
+            - '6 PM'
+            - '18:35'
+            """
+            if not t_str:
+                return None
+
+            s = str(t_str).strip().upper()
+            s = s.replace(" ", "")  # Remove inner spaces: '6:35 PM' -> '6:35PM', '6 pm' -> '6PM'
+
+            formats = ["%I:%M%p", "%I%p", "%H:%M", "%H"] # Try several possible formats
+            for fmt in formats:
+                try:
+                    dt = datetime.strptime(s, fmt)
+                    return dt.hour * 60 + dt.minute
+                except ValueError:
+                    continue
+
+            logging.warning(f"Could not parse time string for alarm: '{t_str}' (normalized: '{s}')")
+            return None
+
+        try:
+            task_minutes = to_minutes(task_time_raw)
+            current_minutes = to_minutes(current_time_raw)
+
+            if task_minutes is None or current_minutes is None:
+                return False
+
+            return task_minutes == current_minutes
+
+        except Exception as e:
+            logging.error(f"Error in _should_trigger_alarm: {e}")
+            return False
 
     def _trigger_alarm(self, task):
         alarm_key = f"{task.id}_{task.due_time.upper().strip()}"
@@ -400,6 +450,9 @@ class AlarmManager:
 
             alarm_popup = AlarmPopup(task=task, alarm_key=alarm_key, alarm_manager=self)
             alarm_popup.open()
+
+            # Auto-dismiss after 30 seconds if not acknowledged
+            Clock.schedule_once(lambda dt: alarm_popup.dismiss(), 30)
 
             if getattr(self.app, "tts_engine", None):
                 try:
