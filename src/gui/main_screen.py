@@ -375,6 +375,10 @@ class MainScreen(Screen):
                 self.app.tts_engine.speak("No matching tasks found to mark as done")
 
     def create_task(self, task, time, original_text=""):
+        if self.app and hasattr(self.app, 'command_parser'):
+            task = self.app.command_parser.format_task_text(task)
+        
+        # Rest of your existing method continues unchanged:
         if not self.app:
             return
         try:
@@ -437,11 +441,16 @@ class MainScreen(Screen):
         if not self.app:
             return
 
-        add_task_popup = AddTaskPopup(save_callback=self.create_task)
-        # link popup to app so it can use command_parser.format_task_text
+        add_task_popup = AddTaskPopup(save_callback=self._handle_manual_task_save)
         add_task_popup.app = self.app
         add_task_popup.open()
 
+    def _handle_manual_task_save(self, task_text, time_text):
+        if self.app and hasattr(self.app, 'command_parser'):
+            formatted_task = self.app.command_parser.format_task_text(task_text)
+        else:
+            formatted_task = task_text
+        self.create_task(formatted_task, time_text)
 
 class TaskItem(BoxLayout):
     __events__ = ('on_delete', 'on_complete')

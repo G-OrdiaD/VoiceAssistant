@@ -384,7 +384,6 @@ class AlarmManager:
         Supports formats like:
         - '06:35 PM', '6:35PM', '06:35PM', '6:35 pm', '6 PM'
         """
-
         task_time_raw = (task.due_time or " ").upper().strip()
         current_time_raw = (current_time or " ").upper().strip()
 
@@ -438,6 +437,7 @@ class AlarmManager:
     def _trigger_alarm(self, task):
         alarm_key = f"{task.id}_{task.due_time.upper().strip()}"
         self.active_alarms[alarm_key] = True
+
         Clock.schedule_once(lambda dt: self._show_alarm_popup(task, alarm_key))
 
     def _show_alarm_popup(self, task, alarm_key):
@@ -473,6 +473,49 @@ class AlarmManager:
         except Exception as e:
             logging.error(f"Error showing alarm popup: {e}")
 
+ 
+    def handle_alarm_dismiss(self, task, alarm_key):
+        """
+        Handle alarm dismissal.
+        """
+        try:
+            # Mark task as completed in database
+            self.app.db_manager.mark_done(task.id)
+
+            # Remove from active alarms
+            if alarm_key in self.active_alarms:
+                del self.active_alarms[alarm_key]
+
+            # Refresh main screen
+            try:
+                main_screen = self.app.screen_manager.get_screen('main')
+                if hasattr(main_screen, 'load_tasks'):
+                    main_screen.load_tasks()
+            except Exception:
+                pass
+
+            # Refresh tasks screen 
+            try:
+                tasks_screen = self.app.screen_manager.get_screen('tasks') 
+                if hasattr(tasks_screen, 'load_all_tasks'):
+                    tasks_screen.load_all_tasks()
+            except Exception:
+                pass
+            
+            # Refresh settings screen
+            try:
+                settings_screen = self.app.screen_manager.get_screen('settings')
+                if hasattr(settings_screen, 'refresh_with_settings'):
+                    settings_screen.refresh_with_settings(
+                        self.app.font_family, 
+                        self.app.font_size, 
+                        self.app.high_contrast
+                    )
+            except Exception:
+                pass
+
+        except Exception as e:
+            logging.error(f"Error in handle_alarm_dismiss: {e}")
 
 if __name__ == '__main__':
     VoiceAssistantApp().run()

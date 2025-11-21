@@ -2,38 +2,52 @@
 #:import dp kivy.metrics.dp
 
 <BasePopup>:
-    background: ''
-    separator_color: 0.4, 0.5, 0.8, 1
+    separator_color: 0.3, 0.3, 0.4, 1
     title_align: 'center'
     title_size: dp(20)
+    title_color: 1, 1, 1, 1
+    size_hint: (0.8, 0.5)
+    background: ''
+    background_color: 0, 0, 0, 0
+    
+    # Styling properties for inheritance
+    text_color: 1, 1, 1, 1
+    label_font_size: dp(20)
+    button_font_size: dp(20)
+    input_background: 0.2, 0.2, 0.25, 1
+    input_text_color: 1, 1, 1, 1
+    input_border_color: 0.7, 0.7, 0.7, 1
+    cancel_button_color: 0.9, 0.3, 0.3, 1
+    save_button_color: 0.36, 0.52, 0.96, 1
+    container_padding: [dp(20), dp(15), dp(20), dp(15)]
+    container_spacing: dp(15)
     
     canvas.before:
         Color:
-            rgba: 0.96, 0.96, 0.98, 1
+            rgba: 0.5, 0.5, 0.55, 1  # Light grey background
         RoundedRectangle:
             pos: self.pos
             size: self.size
             radius: [dp(20),]
         Color:
-            rgba: 0.8, 0.8, 0.85, 1
+            rgba: 0.95, 0.93, 0.85, 1  # Cream border color
         Line:
-            width: dp(2)
+            width: dp(0.5)
             rounded_rectangle: [self.x, self.y, self.width, self.height, dp(20)]
 
 <AddTaskPopup>:
-    size_hint: (0.8, 0.5)
     title: 'Add Task'
 
     BoxLayout:
         orientation: 'vertical'
-        padding: [dp(20), dp(15), dp(20), dp(15)]
-        spacing: dp(15)
+        padding: root.container_padding
+        spacing: root.container_spacing
 
         Label:
             text: 'Enter your task:'
-            font_size: dp(18)
-            font_name: app.font_family  
-            color: 0.3, 0.3, 0.4, 1
+            font_size: root.label_font_size
+            font_name: root.font_family
+            color: root.text_color
             size_hint_y: 0.12
             text_size: self.width, None
             halign: 'center'
@@ -44,17 +58,17 @@
             size_hint_y: 0.18
             hint_text: 'e.g., Call Daughter...'
             hint_text_color: 0.6, 0.6, 0.6, 1
-            font_name: app.font_family  
+            font_name: root.font_family
             multiline: False
             background_normal: ''
             background_active: ''
-            background_color: 0.95, 0.95, 0.95, 1
-            foreground_color: 0, 0, 0, 1
-            font_size: dp(16)
+            background_color: root.input_background
+            foreground_color: root.input_text_color
+            font_size: root.label_font_size
             padding: [dp(10), dp(8)]
             canvas.before:
                 Color:
-                    rgba: 0.7, 0.7, 0.7, 1
+                    rgba: root.input_border_color
                 Line:
                     width: dp(1.5)
                     rounded_rectangle: [self.x, self.y, self.width, self.height, dp(6)]
@@ -66,9 +80,9 @@
             
             Label:
                 text: 'TIME:'
-                font_size: dp(18)
-                font_name: app.font_family
-                color: 0.3, 0.3, 0.4, 1
+                font_size: root.label_font_size
+                font_name: root.font_family
+                color: root.text_color
                 size_hint_x: 0.25
                 text_size: self.width, None
                 halign: 'center'
@@ -80,19 +94,19 @@
                 hint_text: '06:00'
                 hint_text_color: 0.6, 0.6, 0.6, 1
                 text: ''
-                font_name: app.font_family  
+                font_name: root.font_family
                 multiline: False
                 background_normal: ''
                 background_active: ''
-                background_color: 0.95, 0.95, 0.95, 1
-                foreground_color: 0, 0, 0, 1
+                background_color: root.input_background
+                foreground_color: root.input_text_color
                 padding: [dp(8), dp(8)]
-                font_size: dp(16)
+                font_size: root.label_font_size
                 canvas.before:
                     Color:
-                        rgba: 0.7, 0.7, 0.7, 1
+                        rgba: root.input_border_color
                     Line:
-                        width: dp(1.5)
+                        width: dp(1.2)
                         rounded_rectangle: [self.x, self.y, self.width, self.height, dp(6)]
 
             Spinner:
@@ -100,16 +114,16 @@
                 size_hint_x: 0.1
                 text: 'AM'
                 values: ['AM', 'PM']
-                font_name: app.font_family  
+                font_name: root.font_family
                 background_normal: ''
-                background_color: 0.95, 0.95, 0.95, 1
-                color: 0, 0, 0, 1
-                font_size: dp(18)
+                background_color: root.input_background
+                color: root.input_text_color
+                font_size: root.label_font_size
                 canvas.before:
                     Color:
-                        rgba: 0.7, 0.7, 0.7, 1
+                        rgba: root.input_border_color
                     Line:
-                        width: dp(1.5)
+                        width: dp(1.2)
                         rounded_rectangle: [self.x, self.y, self.width, self.height, dp(6)]
 
             Widget:
@@ -123,15 +137,15 @@
 
             Button:
                 text: 'Cancel'
-                font_size: dp(18)
-                font_name: app.font_family  
+                font_size: root.button_font_size
+                font_name: root.font_family
                 background_normal: ''
                 background_color: 0, 0, 0, 0
-                color: 1, 1, 1, 1
+                color: root.text_color
                 on_press: root.dismiss()
                 canvas.before:
                     Color:
-                        rgba: 0.9, 0.3, 0.3, 1
+                        rgba: root.cancel_button_color
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
@@ -139,34 +153,33 @@
 
             Button:
                 text: 'Save Task'
-                font_size: dp(18)
-                font_name: app.font_family  
+                font_size: root.button_font_size
+                font_name: root.font_family
                 background_normal: ''
                 background_color: 0, 0, 0, 0
-                color: 1, 1, 1, 1
+                color: root.text_color
                 on_press: root.save_task()
                 canvas.before:
                     Color:
-                        rgba: 0.36, 0.52, 0.96, 1
+                        rgba: root.save_button_color
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
                         radius: [dp(8),]
 
 <ConfirmationPopup>:
-    size_hint: (0.8, 0.5)
     title: root.popup_title
 
     BoxLayout:
         orientation: 'vertical'
-        padding: [dp(20), dp(15), dp(20), dp(15)]
-        spacing: dp(15)
+        padding: root.container_padding
+        spacing: root.container_spacing
 
         Label:
             text: root.confirmation_text
-            font_size: dp(18)
-            font_name: app.font_family  
-            color: 0.3, 0.3, 0.4, 1
+            font_size: root.label_font_size
+            font_name: root.font_family
+            color: root.text_color
             size_hint_y: 0.6
             text_size: self.width, None
             halign: 'center'
@@ -180,34 +193,33 @@
 
             Button:
                 text: 'OK'
-                font_size: dp(18)
-                font_name: app.font_family 
+                font_size: root.button_font_size
+                font_name: root.font_family
                 background_normal: ''
                 background_color: 0, 0, 0, 0
-                color: 1, 1, 1, 1
+                color: root.text_color
                 on_press: root.dismiss()
                 canvas.before:
                     Color:
-                        rgba: 0.36, 0.52, 0.96, 1
+                        rgba: root.save_button_color
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
                         radius: [dp(8),]
 
 <ListeningPopup>:
-    size_hint: (0.8, 0.5)
     title: 'Listening...'
 
     BoxLayout:
         orientation: 'vertical'
-        padding: [dp(20), dp(15), dp(20), dp(15)]
-        spacing: dp(15)
+        padding: root.container_padding
+        spacing: root.container_spacing
 
         Label:
             text: 'Speak your command now'
-            font_size: dp(18)
-            font_name: app.font_family 
-            color: 0.1, 0.1, 0.1, 1
+            font_size: root.label_font_size
+            font_name: root.font_family
+            color: root.text_color
             size_hint_y: 0.3
             text_size: self.width, None
             halign: 'center'
@@ -232,34 +244,33 @@
 
             Button:
                 text: 'Cancel'
-                font_size: dp(18)
-                font_name: app.font_family  
+                font_size: root.button_font_size
+                font_name: root.font_family
                 background_normal: ''
                 background_color: 0, 0, 0, 0
-                color: 1, 1, 1, 1
+                color: root.text_color
                 on_press: root.dismiss()
                 canvas.before:
                     Color:
-                        rgba: 0.8, 0.2, 0.2, 1
+                        rgba: root.cancel_button_color
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
                         radius: [dp(8),]
                         
 <SettingsConfirmationPopup>:
-    size_hint: (0.8, 0.5)
-    title: 'Default Settings'
+    title: 'Settings Saved'
 
     BoxLayout:
         orientation: 'vertical'
-        padding: [dp(20), dp(15), dp(20), dp(15)]
-        spacing: dp(15)
+        padding: root.container_padding
+        spacing: root.container_spacing
         
         Label:
             text: getattr(root, 'confirmation_text', 'Settings saved')
-            font_size: dp(18)
-            font_name: app.font_family 
-            color: 0.1, 0.1, 0.1, 1
+            font_size: root.label_font_size
+            font_name: root.font_family
+            color: root.text_color
             size_hint_y: 0.6
             text_size: self.width, None
             halign: 'center'
@@ -273,34 +284,33 @@
             
             Button:
                 text: 'OK'
-                font_size: dp(18)
-                font_name: app.font_family
+                font_size: root.button_font_size
+                font_name: root.font_family
                 background_normal: ''
                 background_color: 0, 0, 0, 0
-                color: 1, 1, 1, 1
+                color: root.text_color
                 on_release: root.dismiss()
                 canvas.before:
                     Color:
-                        rgba: 0.36, 0.52, 0.96, 1
+                        rgba: root.save_button_color
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
                         radius: [dp(8),]
 
 <DefaultSettingsPopup>:
-    size_hint: (0.6, 0.4)
     title: 'Default Settings'
 
     BoxLayout:
         orientation: 'vertical'
-        padding: [dp(20), dp(15), dp(20), dp(15)]
-        spacing: dp(15)
+        padding: root.container_padding
+        spacing: root.container_spacing
         
         Label:
             text: getattr(root, 'confirmation_text', 'Default settings restored!')
-            font_size: dp(18)
-            font_name: app.font_family 
-            color: 0.1, 0.1, 0.1, 1
+            font_size: root.label_font_size
+            font_name: root.font_family
+            color: root.text_color
             size_hint_y: 0.6
             text_size: self.width, None
             halign: 'center'
@@ -314,59 +324,58 @@
             
             Button:
                 text: 'OK'
-                font_size: dp(18)
-                font_name: app.font_family
+                font_size: root.button_font_size
+                font_name: root.font_family
                 background_normal: ''
                 background_color: 0, 0, 0, 0
-                color: 1, 1, 1, 1
+                color: root.text_color
                 on_release: root.dismiss()
                 canvas.before:
                     Color:
-                        rgba: 0.36, 0.52, 0.96, 1
+                        rgba: root.save_button_color
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
                         radius: [dp(8),]
 
 <AlarmPopup>:
-    size_hint: (0.8, 0.5)
-    title: 'REMINDER'
+    title: 'REMINDER !!!'
     auto_dismiss: False
     
     canvas.before:
         Color:
-            rgba: 1, 0.95, 0.9, 1
+            rgba: 0.15, 0.15, 0.2, 1
         RoundedRectangle:
             pos: self.pos
             size: self.size
             radius: [dp(20),]
         Color:
-            rgba: 0.9, 0.3, 0.3, 1
+            rgba: 0.8, 0.2, 0.2, 1
         Line:
             width: dp(2)
             rounded_rectangle: [self.x, self.y, self.width, self.height, dp(20)]
 
     BoxLayout:
         orientation: 'vertical'
-        padding: [dp(20), dp(15), dp(20), dp(15)]
-        spacing: dp(15)
+        padding: root.container_padding
+        spacing: root.container_spacing
 
         Label:
-            text: 'TASK REMINDER'
-            font_size: dp(32)
-            font_name: app.font_family
+            text: 'Task Reminder'
+            font_size: root.label_font_size
+            font_name: root.font_family
             bold: True
-            color: 0.8, 0.2, 0.2, 1
+            color: 0.9, 0.3, 0.3, 1
             size_hint_y: 0.3
             text_size: self.width, None
             halign: 'center'
             valign: 'middle'
 
         Label:
-            text: root.task.title + '\n\nTime: ' + root.task.due_time
-            font_size: dp(20)
-            font_name: app.font_family
-            color: 0.2, 0.2, 0.2, 1
+            text: (root.task.title + '\n\nTime: ' + root.task.due_time) if root.task else ''
+            font_size: root.label_font_size
+            font_name: root.font_family
+            color: root.text_color
             size_hint_y: 0.5
             text_size: self.width, None
             halign: 'center'
@@ -374,17 +383,17 @@
 
         Button:
             text: 'Dismiss'
-            font_size: dp(20)
-            font_name: app.font_family
+            font_size: root.button_font_size
+            font_name: root.font_family
             size_hint_y: 0.2      
             height: dp(40)       
             background_normal: ''
             background_color: 0, 0, 0, 0
-            color: 1, 1, 1, 1
+            color: root.text_color
             on_press: root.dismiss_alarm()
             canvas.before:
                 Color:
-                    rgba: 0.36, 0.52, 0.96, 1
+                    rgba: root.save_button_color
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
