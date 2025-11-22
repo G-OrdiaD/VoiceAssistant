@@ -5,14 +5,20 @@ import threading
 import time
 from datetime import datetime, timedelta
 
-# import from our packages
-from voice.stt_engine import SpeechToTextEngine
-from gui.main_screen import MainScreen
-from gui.tasks_screen import TasksScreen
-from gui.settings_screen import SettingsScreen
-from voice.tts_engine import TextToSpeechEngine
-from voice.command_parser import CommandParser
-from data.database import DatabaseManager
+# Ensure local packages are defined early based on project structure
+current_dir = os.path.dirname(__file__)
+project_root = os.path.dirname(current_dir)
+
+# import from our packages using relative imports
+from .voice.stt_engine import SpeechToTextEngine
+from .gui.main_screen import MainScreen
+from .gui.tasks_screen import TasksScreen
+from .gui.settings_screen import SettingsScreen
+from .voice.tts_engine import TextToSpeechEngine
+from .voice.command_parser import CommandParser
+from .data.database import DatabaseManager
+from .security import SecurityManager
+from .gui.popups import AlarmPopup
 
 # Kivy imports
 from kivy.app import App
@@ -40,12 +46,8 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# Ensure local packages are discoverable
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'data'))
-current_dir = os.path.dirname(__file__)
-project_root = os.path.dirname(current_dir)
 
-
+# Font registration
 def register_application_fonts():
     """
     Register all application fonts.
@@ -127,14 +129,208 @@ print("✅ Registered fonts:", LabelBase._fonts.keys())
 if not font_registered:
     print("⚠️ Using system fonts as fallback")
 
-# Load KV files after font registration
-Builder.load_file('gui/main_screen.kv')
-Builder.load_file('gui/tasks_screen.kv')
-Builder.load_file('gui/settings_screen.kv')
-Builder.load_file('gui/popups.kv')
+# Get the absolute path to the directory containing main.py (which is src/)
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
+# Restore the Builder calls, ensuring you load ONLY the necessary UI files:
+Builder.load_file(os.path.join(current_dir, 'gui', 'main_screen.kv'))
+Builder.load_file(os.path.join(current_dir, 'gui', 'tasks_screen.kv'))
+Builder.load_file(os.path.join(current_dir, 'gui', 'settings_screen.kv'))
+Builder.load_file(os.path.join(current_dir, 'gui', 'popups.kv'))
+
+class AlarmManager:
+    """
+    Monitors tasks and triggers alarms at the right due_time.
+    """
+    def __init__(self, app):
+        self.app = app
+        self.running = False
+        self.alarm_thread = None
+        self.active_alarms = {}
+
+    def start(self):
+        if self.running:
+            return
+
+        self.running = True
+        self.alarm_thread = threading.Thread(target=self._monitor_tasks, daemon=True)
+        self.alarm_thread.start()
+        logging.info("Alarm system started")
+
+    def stop(self):
+        self.running = False
+        if self.alarm_thread:
+            self.alarm_thread.join(timeout=1.0)
+        logging.info("Alarm system stopped")
+
+    def _monitor_tasks(self):
+        while self.running:
+            try:
+                current_time = self._get_current_time()
+                tasks = self.app.db_manager.get_all_tasks()
+
+                for task in tasks:
+                    if self._should_trigger_alarm(task, current_time):
+                        self._trigger_alarm(task)
+
+                time.sleep(30)
+
+            except Exception as e:
+                logging.error(f"Alarm monitor error: {e}")
+                time.sleep(60)
+
+    def _get_current_time(self):
+        """
+        Return current time as a string like '6:35 PM'
+        (no leading zero on hour, AM/PM in upper case).
+        """
+        now = datetime.now()
+        return now.strftime("%I:%M %p").lstrip("0").upper() # '%I' gives 01–12, lstrip('0') removes leading 0 for 01–09
+
+
+    def _should_trigger_alarm(self, task, current_time):
+        """
+        Decide whether to trigger an alarm for this task at current_time.
+
+        Supports formats like:
+        - '06:35 PM', '6:35PM', '06:35PM', '6:35 pm', '6 PM'
+        """
+        task_time_raw = (task.due_time or " ").upper().strip()
+        current_time_raw = (current_time or " ").upper().strip()
+
+        # Use the same alarm key style used in _trigger_alarm
+        alarm_key = f"{task.id}_{task_time_raw}"
+
+        # Already active alarm? Then don't re-trigger from here.
+        if alarm_key in self.active_alarms:
+            return False
+
+        def to_minutes(t_str: str):
+            """
+            Convert a time string to minutes since midnight.
+            Returns None if parsing fails.
+
+            Handles:
+            - '6:35 PM', '06:35 PM', '6:35PM', '06:35PM', '6:35 pm'
+            - '6 PM'
+            - '18:35'
+            """
+            if not t_str:
+                return None
+
+            s = str(t_str).strip().upper()
+            s = s.replace(" ", "")  # Remove inner spaces: '6:35 PM' -> '6:35PM', '6 pm' -> '6PM'
+
+            formats = ["%I:%M%p", "%I%p", "%H:%M", "%H"] # Try several possible formats
+            for fmt in formats:
+                try:
+                    dt = datetime.strptime(s, fmt)
+                    return dt.hour * 60 + dt.minute
+                except ValueError:
+                    continue
+
+            logging.warning(f"Could not parse time string for alarm: '{t_str}' (normalized: '{s}')")
+            return None
+
+        try:
+            task_minutes = to_minutes(task_time_raw)
+            current_minutes = to_minutes(current_time_raw)
+
+            if task_minutes is None or current_minutes is None:
+                return False
+
+            return task_minutes == current_minutes
+
+        except Exception as e:
+            logging.error(f"Error in _should_trigger_alarm: {e}")
+            return False
+
+    def _trigger_alarm(self, task):
+        alarm_key = f"{task.id}_{task.due_time.upper().strip()}"
+        self.active_alarms[alarm_key] = True
+
+        Clock.schedule_once(lambda dt: self._show_alarm_popup(task, alarm_key))
+
+    def _show_alarm_popup(self, task, alarm_key):
+        """
+        Show alarm popup and speak the reminder.
+        TTS is wrapped with error handling to avoid crashing on PaMacCore issues.
+        """
+        try:
+            from .gui.popups import AlarmPopup
+
+            alarm_popup = AlarmPopup(task=task, alarm_key=alarm_key, alarm_manager=self)
+            alarm_popup.open()
+
+            # Auto-dismiss after 30 seconds if not acknowledged
+            Clock.schedule_once(lambda dt: alarm_popup.dismiss(), 30)
+
+            if getattr(self.app, "tts_engine", None):
+                try:
+                    self.app.tts_engine.speak(
+                        f"Reminder. {task.title} at {task.due_time}"
+                    )
+                except Exception as e:
+                    logging.error(f"Error in alarm TTS: {e}")
+
+            # Re-check in 5 minutes if not acknowledged
+            def retrigger_if_active(dt):
+                if alarm_key in self.active_alarms:
+                    logging.info(f"Re-triggering alarm for task: {task.title}")
+                    self._show_alarm_popup(task, alarm_key)
+
+            Clock.schedule_once(retrigger_if_active, 300)
+
+        except Exception as e:
+            logging.error(f"Error showing alarm popup: {e}")
+
+ 
+    def handle_alarm_dismiss(self, task, alarm_key):
+        """
+        Handle alarm dismissal.
+        """
+        try:
+            # Mark task as completed in database
+            self.app.db_manager.mark_done(task.id)
+
+            # Remove from active alarms
+            if alarm_key in self.active_alarms:
+                del self.active_alarms[alarm_key]
+
+            # Refresh main screen
+            try:
+                main_screen = self.app.screen_manager.get_screen('main')
+                if hasattr(main_screen, 'load_tasks'):
+                    main_screen.load_tasks()
+            except Exception:
+                pass
+
+            # Refresh tasks screen 
+            try:
+                tasks_screen = self.app.screen_manager.get_screen('tasks') 
+                if hasattr(tasks_screen, 'load_all_tasks'):
+                    tasks_screen.load_all_tasks()
+            except Exception:
+                pass
+            
+            # Refresh settings screen
+            try:
+                settings_screen = self.app.screen_manager.get_screen('settings')
+                if hasattr(settings_screen, 'refresh_with_settings'):
+                    settings_screen.refresh_with_settings(
+                        self.app.font_family, 
+                        self.app.font_size, 
+                        self.app.high_contrast
+                    )
+            except Exception:
+                pass
+
+        except Exception as e:
+            logging.error(f"Error in handle_alarm_dismiss: {e}")
 
 class VoiceAssistantApp(App):
+    use_kivy_settings = False
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.screen_manager = None
@@ -161,8 +357,13 @@ class VoiceAssistantApp(App):
         Initialize DB, STT, TTS, parser, alarms.
         """
         try:
+            # 1. Initialize Security Manager
+            security_manager = SecurityManager()
+             
             db_path = os.path.join(project_root, 'tasks.db')
-            self.db_manager = DatabaseManager(db_path)
+            # 2. Pass the instance to DatabaseManager
+            self.db_manager = DatabaseManager(security_manager=security_manager, db_path=db_path)
+            # 3.Clean old tasks on startup
             self.db_manager.clear_old_tasks()
 
             model_path = os.path.join(
@@ -325,197 +526,6 @@ class VoiceAssistantApp(App):
             self.tts_engine.stop()
         if self.alarm_manager:
             self.alarm_manager.stop()
-
-
-class AlarmManager:
-    """
-    Monitors tasks and triggers alarms at the right due_time.
-    """
-    def __init__(self, app):
-        self.app = app
-        self.running = False
-        self.alarm_thread = None
-        self.active_alarms = {}
-
-    def start(self):
-        if self.running:
-            return
-
-        self.running = True
-        self.alarm_thread = threading.Thread(target=self._monitor_tasks, daemon=True)
-        self.alarm_thread.start()
-        logging.info("Alarm system started")
-
-    def stop(self):
-        self.running = False
-        if self.alarm_thread:
-            self.alarm_thread.join(timeout=1.0)
-        logging.info("Alarm system stopped")
-
-    def _monitor_tasks(self):
-        while self.running:
-            try:
-                current_time = self._get_current_time()
-                tasks = self.app.db_manager.get_all_tasks()
-
-                for task in tasks:
-                    if self._should_trigger_alarm(task, current_time):
-                        self._trigger_alarm(task)
-
-                time.sleep(30)
-
-            except Exception as e:
-                logging.error(f"Alarm monitor error: {e}")
-                time.sleep(60)
-
-    def _get_current_time(self):
-        """
-        Return current time as a string like '6:35 PM'
-        (no leading zero on hour, AM/PM in upper case).
-        """
-        now = datetime.now()
-        return now.strftime("%I:%M %p").lstrip("0").upper() # '%I' gives 01–12, lstrip('0') removes leading 0 for 01–09
-
-
-    def _should_trigger_alarm(self, task, current_time):
-        """
-        Decide whether to trigger an alarm for this task at current_time.
-
-        Supports formats like:
-        - '06:35 PM', '6:35PM', '06:35PM', '6:35 pm', '6 PM'
-        """
-        task_time_raw = (task.due_time or " ").upper().strip()
-        current_time_raw = (current_time or " ").upper().strip()
-
-        # Use the same alarm key style used in _trigger_alarm
-        alarm_key = f"{task.id}_{task_time_raw}"
-
-        # Already active alarm? Then don't re-trigger from here.
-        if alarm_key in self.active_alarms:
-            return False
-
-        def to_minutes(t_str: str):
-            """
-            Convert a time string to minutes since midnight.
-            Returns None if parsing fails.
-
-            Handles:
-            - '6:35 PM', '06:35 PM', '6:35PM', '06:35PM', '6:35 pm'
-            - '6 PM'
-            - '18:35'
-            """
-            if not t_str:
-                return None
-
-            s = str(t_str).strip().upper()
-            s = s.replace(" ", "")  # Remove inner spaces: '6:35 PM' -> '6:35PM', '6 pm' -> '6PM'
-
-            formats = ["%I:%M%p", "%I%p", "%H:%M", "%H"] # Try several possible formats
-            for fmt in formats:
-                try:
-                    dt = datetime.strptime(s, fmt)
-                    return dt.hour * 60 + dt.minute
-                except ValueError:
-                    continue
-
-            logging.warning(f"Could not parse time string for alarm: '{t_str}' (normalized: '{s}')")
-            return None
-
-        try:
-            task_minutes = to_minutes(task_time_raw)
-            current_minutes = to_minutes(current_time_raw)
-
-            if task_minutes is None or current_minutes is None:
-                return False
-
-            return task_minutes == current_minutes
-
-        except Exception as e:
-            logging.error(f"Error in _should_trigger_alarm: {e}")
-            return False
-
-    def _trigger_alarm(self, task):
-        alarm_key = f"{task.id}_{task.due_time.upper().strip()}"
-        self.active_alarms[alarm_key] = True
-
-        Clock.schedule_once(lambda dt: self._show_alarm_popup(task, alarm_key))
-
-    def _show_alarm_popup(self, task, alarm_key):
-        """
-        Show alarm popup and speak the reminder.
-        TTS is wrapped with error handling to avoid crashing on PaMacCore issues.
-        """
-        try:
-            from gui.popups import AlarmPopup
-
-            alarm_popup = AlarmPopup(task=task, alarm_key=alarm_key, alarm_manager=self)
-            alarm_popup.open()
-
-            # Auto-dismiss after 30 seconds if not acknowledged
-            Clock.schedule_once(lambda dt: alarm_popup.dismiss(), 30)
-
-            if getattr(self.app, "tts_engine", None):
-                try:
-                    self.app.tts_engine.speak(
-                        f"Reminder. {task.title} at {task.due_time}"
-                    )
-                except Exception as e:
-                    logging.error(f"Error in alarm TTS: {e}")
-
-            # Re-check in 5 minutes if not acknowledged
-            def retrigger_if_active(dt):
-                if alarm_key in self.active_alarms:
-                    logging.info(f"Re-triggering alarm for task: {task.title}")
-                    self._show_alarm_popup(task, alarm_key)
-
-            Clock.schedule_once(retrigger_if_active, 300)
-
-        except Exception as e:
-            logging.error(f"Error showing alarm popup: {e}")
-
- 
-    def handle_alarm_dismiss(self, task, alarm_key):
-        """
-        Handle alarm dismissal.
-        """
-        try:
-            # Mark task as completed in database
-            self.app.db_manager.mark_done(task.id)
-
-            # Remove from active alarms
-            if alarm_key in self.active_alarms:
-                del self.active_alarms[alarm_key]
-
-            # Refresh main screen
-            try:
-                main_screen = self.app.screen_manager.get_screen('main')
-                if hasattr(main_screen, 'load_tasks'):
-                    main_screen.load_tasks()
-            except Exception:
-                pass
-
-            # Refresh tasks screen 
-            try:
-                tasks_screen = self.app.screen_manager.get_screen('tasks') 
-                if hasattr(tasks_screen, 'load_all_tasks'):
-                    tasks_screen.load_all_tasks()
-            except Exception:
-                pass
-            
-            # Refresh settings screen
-            try:
-                settings_screen = self.app.screen_manager.get_screen('settings')
-                if hasattr(settings_screen, 'refresh_with_settings'):
-                    settings_screen.refresh_with_settings(
-                        self.app.font_family, 
-                        self.app.font_size, 
-                        self.app.high_contrast
-                    )
-            except Exception:
-                pass
-
-        except Exception as e:
-            logging.error(f"Error in handle_alarm_dismiss: {e}")
 
 if __name__ == '__main__':
     VoiceAssistantApp().run()

@@ -1,19 +1,26 @@
 import sqlite3
 import logging
+import os
 from typing import List
-from .models import Task
 
+from ..security import SecurityManager
+from .models import Task
 
 class DatabaseManager:
     """
-    SQLite-based storage for tasks.
-
-    Security notes:
-    - Uses parameterised queries (no string formatting).
-    - DB path is provided by the app and not user-controlled.
+    SQLite-based storage for tasks with encryption.
     """
-    def __init__(self, db_path: str):
-        self.db_path = db_path
+    def __init__(self, security_manager, db_path: str = None, test_mode: bool = False):
+        self.security = security_manager
+        self.test_mode = test_mode
+        
+        if test_mode:
+            self.db_path = ":memory:"
+        elif db_path:
+            self.db_path = db_path
+        else:
+            self.db_path = self.security.get_secure_db_path()
+            
         self._init_db()
 
     def _init_db(self):
@@ -23,7 +30,7 @@ class DatabaseManager:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS tasks (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        title TEXT NOT NULL,
+                        title_encrypted TEXT NOT NULL,
                         due_time TEXT NOT NULL,
                         created_at TEXT NOT NULL,
                         is_completed INTEGER DEFAULT 0
@@ -34,18 +41,24 @@ class DatabaseManager:
                     ON tasks (due_time);
                 """)
                 conn.commit()
+                
+                # Set secure file permissions for production DB
+                if not self.test_mode and os.path.exists(self.db_path):
+                    os.chmod(self.db_path, 0x180)  # 0o600 in octal - owner read/write only
+                    
         except sqlite3.Error as e:
             logging.error(f"Database initialization error: {e}")
             raise
 
     def add_task(self, title: str, due_time: str) -> bool:
-        """Add a new task."""
+        """Add a new task with encrypted title."""
         try:
+            encrypted_title = self.security.encrypt_data(title)
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute("""
-                    INSERT INTO tasks (title, due_time, created_at, is_completed)
+                    INSERT INTO tasks (title_encrypted, due_time, created_at, is_completed)
                     VALUES (?, ?, datetime('now'), 0);
-                """, (title, due_time))
+                """, (encrypted_title, due_time))
                 conn.commit()
                 return True
         except sqlite3.Error as e:
@@ -53,26 +66,40 @@ class DatabaseManager:
             return False
 
     def get_all_tasks(self) -> List[Task]:
-        """Get all tasks ordered by due_time."""
+        """Get all tasks with decrypted titles."""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cur = conn.execute("""
-                    SELECT id, title, due_time, created_at, is_completed
+                    SELECT id, title_encrypted, due_time, created_at, is_completed
                     FROM tasks
                     ORDER BY due_time ASC;
                 """)
                 rows = cur.fetchall()
-                return [
-                    Task(
-                        id=row["id"],
-                        title=row["title"],
-                        due_time=row["due_time"],
-                        created_at=row["created_at"],
-                        is_completed=bool(row["is_completed"])
-                    )
-                    for row in rows
-                ]
+                tasks = []
+                for row in rows:
+                    try:
+                        decrypted_title = self.security.decrypt_data(row["title_encrypted"])
+                        task = Task(
+                            id=row["id"],
+                            title=decrypted_title,
+                            due_time=row["due_time"],
+                            created_at=row["created_at"],
+                            is_completed=bool(row["is_completed"])
+                        )
+                        tasks.append(task)
+                    except Exception as e:
+                        logging.error(f"Error decrypting task {row['id']}: {e}")
+                        # Fallback to placeholder if decryption fails
+                        task = Task(
+                            id=row["id"],
+                            title="[Encrypted Task]",
+                            due_time=row["due_time"],
+                            created_at=row["created_at"],
+                            is_completed=bool(row["is_completed"])
+                        )
+                        tasks.append(task)
+                return tasks
         except sqlite3.Error as e:
             logging.error(f"Error fetching tasks: {e}")
             return []
@@ -103,11 +130,7 @@ class DatabaseManager:
             return False
     
     def clear_old_tasks(self) -> bool:
-        """
-        Remove tasks that were created on a previous calendar day.
-        Call this once on app startup, before any screen loads, so the user
-        never sees yesterday's tasks flash on screen.
-        """
+        """Remove tasks from previous calendar days."""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute("""

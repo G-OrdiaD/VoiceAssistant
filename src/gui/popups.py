@@ -89,6 +89,7 @@ class ListeningPopup(BasePopup):
     def __init__(self, dismiss_callback, **kwargs):
         super().__init__(**kwargs)
         self.dismiss_callback = dismiss_callback
+        self.auto_dismiss = False
 
     def on_dismiss(self):
         if self.dismiss_callback:

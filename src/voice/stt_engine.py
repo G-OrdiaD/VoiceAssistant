@@ -92,7 +92,7 @@ class SpeechToTextEngine:
 
                 silence_count = 0
                 speech_frames = 0
-                processed_frames = 0  # ADDED: Frame counter for reset
+                processed_frames = 0      # Frame counter for reset
 
                 while self.is_listening:
                     try:

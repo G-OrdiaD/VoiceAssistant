@@ -2,6 +2,7 @@
 #:import dp kivy.metrics.dp
 
 <BasePopup>:
+    # Keep only properties, no widget structure
     separator_color: 0.3, 0.3, 0.4, 1
     title_align: 'center'
     title_size: dp(20)
@@ -21,7 +22,10 @@
     save_button_color: 0.36, 0.52, 0.96, 1
     container_padding: [dp(20), dp(15), dp(20), dp(15)]
     container_spacing: dp(15)
-    
+
+<AddTaskPopup>:
+    title: 'Add Task'
+
     canvas.before:
         Color:
             rgba: 0.5, 0.5, 0.55, 1  # Light grey background
@@ -34,9 +38,6 @@
         Line:
             width: dp(0.5)
             rounded_rectangle: [self.x, self.y, self.width, self.height, dp(20)]
-
-<AddTaskPopup>:
-    title: 'Add Task'
 
     BoxLayout:
         orientation: 'vertical'
@@ -170,6 +171,19 @@
 <ConfirmationPopup>:
     title: root.popup_title
 
+    canvas.before:
+        Color:
+            rgba: 0.5, 0.5, 0.55, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(20),]
+        Color:
+            rgba: 0.95, 0.93, 0.85, 1
+        Line:
+            width: dp(0.5)
+            rounded_rectangle: [self.x, self.y, self.width, self.height, dp(20)]
+
     BoxLayout:
         orientation: 'vertical'
         padding: root.container_padding
@@ -209,6 +223,19 @@
 
 <ListeningPopup>:
     title: 'Listening...'
+
+    canvas.before:
+        Color:
+            rgba: 0.5, 0.5, 0.55, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(20),]
+        Color:
+            rgba: 0.95, 0.93, 0.85, 1
+        Line:
+            width: dp(0.5)
+            rounded_rectangle: [self.x, self.y, self.width, self.height, dp(20)]
 
     BoxLayout:
         orientation: 'vertical'
@@ -257,9 +284,23 @@
                         pos: self.pos
                         size: self.size
                         radius: [dp(8),]
-                        
+
+# Apply the same pattern to other popups - move canvas.before from BasePopup to each concrete popup
 <SettingsConfirmationPopup>:
     title: 'Settings Saved'
+
+    canvas.before:
+        Color:
+            rgba: 0.5, 0.5, 0.55, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(20),]
+        Color:
+            rgba: 0.95, 0.93, 0.85, 1
+        Line:
+            width: dp(0.5)
+            rounded_rectangle: [self.x, self.y, self.width, self.height, dp(20)]
 
     BoxLayout:
         orientation: 'vertical'
@@ -300,6 +341,19 @@
 
 <DefaultSettingsPopup>:
     title: 'Default Settings'
+
+    canvas.before:
+        Color:
+            rgba: 0.5, 0.5, 0.55, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(20),]
+        Color:
+            rgba: 0.95, 0.93, 0.85, 1
+        Line:
+            width: dp(0.5)
+            rounded_rectangle: [self.x, self.y, self.width, self.height, dp(20)]
 
     BoxLayout:
         orientation: 'vertical'
