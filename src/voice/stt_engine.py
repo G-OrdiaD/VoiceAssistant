@@ -11,7 +11,6 @@ import kivy
 
 logger = logging.getLogger(__name__)
 
-
 class SpeechToTextEngine:
     """
     Handles microphone input and speech-to-text using Vosk.
@@ -24,6 +23,8 @@ class SpeechToTextEngine:
         self.is_listening = False
         self.audio_stream = None
         self.callback: Callable[[str], None] = None
+        self._audio = None  # Single PyAudio instance
+        self.audio_lock = threading.Lock()  # Add lock for thread safety
         self._load_model()
 
     def _load_model(self):
@@ -59,28 +60,33 @@ class SpeechToTextEngine:
         - Uses a background thread to avoid blocking UI.
         - Filters background noise and ignores tiny, unreliable outputs.
         """
-        if self.is_listening:
-            logger.warning("Already listening, ignoring start request")
-            return
+        with self.audio_lock:
+            if self.is_listening:
+                logger.warning("Already listening, ignoring start request")
+                return
 
-        if not self.model:
-            logger.error("Cannot start listening: model not loaded")
-            return
+            if not self.model:
+                logger.error("Cannot start listening: model not loaded")
+                return
 
-        self.callback = callback
-        self.is_listening = True
+            self.callback = callback
+            self.is_listening = True
 
         def listen_thread():
             try:
-                audio = pyaudio.PyAudio()
-                self.audio_stream = audio.open(
-                    format=pyaudio.paInt16,
-                    channels=1,
-                    rate=16000,
-                    input=True,
-                    frames_per_buffer=4096,
-                    input_device_index=None
-                )
+                with self.audio_lock:
+                    # Use single PyAudio instance instead of creating new one each time
+                    if self._audio is None:
+                        self._audio = pyaudio.PyAudio()
+                    
+                    self.audio_stream = self._audio.open(
+                        format=pyaudio.paInt16,
+                        channels=1,
+                        rate=16000,
+                        input=True,
+                        frames_per_buffer=4096,
+                        input_device_index=None
+                    )
 
                 logger.info("🎤 Listening for commands")
 
@@ -127,13 +133,14 @@ class SpeechToTextEngine:
                         except Exception:
                             boosted = data  # Fallback if gain fails
 
-                        # ADDED: Reset recognizer every 10000 frames to prevent crashes
+                        # Reset recognizer every 10000 frames to prevent crashes
                         processed_frames += 1
                         if processed_frames > 10000:
                             logger.info("Resetting Vosk recognizer to prevent state corruption")
-                            self.recognizer = vosk.KaldiRecognizer(self.model, 16000)
-                            self.recognizer.SetWords(True)
-                            self.recognizer.SetPartialWords(True)
+                            with self.audio_lock:
+                                self.recognizer = vosk.KaldiRecognizer(self.model, 16000)
+                                self.recognizer.SetWords(True)
+                                self.recognizer.SetPartialWords(True)
                             processed_frames = 0
 
                         if self.recognizer.AcceptWaveform(boosted):
@@ -165,11 +172,12 @@ class SpeechToTextEngine:
 
                     except Exception as e:
                         logger.error(f"Error in speech recognition loop: {e}")
-                        # ADDED: Reset recognizer on error
+                        # Reset recognizer on error
                         try:
-                            self.recognizer = vosk.KaldiRecognizer(self.model, 16000)
-                            self.recognizer.SetWords(True)
-                            self.recognizer.SetPartialWords(True)
+                            with self.audio_lock:
+                                self.recognizer = vosk.KaldiRecognizer(self.model, 16000)
+                                self.recognizer.SetWords(True)
+                                self.recognizer.SetPartialWords(True)
                             processed_frames = 0
                         except:
                             pass
@@ -192,15 +200,22 @@ class SpeechToTextEngine:
         """
         Clean up audio resources safely.
         """
-        if self.audio_stream:
-            try:
-                self.audio_stream.stop_stream()
-                self.audio_stream.close()
-            except Exception:
-                pass
-            self.audio_stream = None
+        with self.audio_lock:
+            if self.audio_stream:
+                try:
+                    self.audio_stream.stop_stream()
+                    self.audio_stream.close()
+                except Exception:
+                    pass
+                finally:
+                    self.audio_stream = None
+            # Don't terminate _audio - keep it for reuse
+            self.is_listening = False
 
     def stop_listening(self):
         """Public method to stop listening and clean up."""
         self.is_listening = False
+        # Small delay to let thread finish current operation
+        import time
+        time.sleep(0.1)
         self._cleanup_audio()

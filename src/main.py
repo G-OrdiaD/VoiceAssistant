@@ -1,5 +1,4 @@
 import logging
-import sys
 import os
 import threading
 import time
@@ -129,14 +128,7 @@ print("✅ Registered fonts:", LabelBase._fonts.keys())
 if not font_registered:
     print("⚠️ Using system fonts as fallback")
 
-# Get the absolute path to the directory containing main.py (which is src/)
-current_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Restore the Builder calls, ensuring you load ONLY the necessary UI files:
-Builder.load_file(os.path.join(current_dir, 'gui', 'main_screen.kv'))
-Builder.load_file(os.path.join(current_dir, 'gui', 'tasks_screen.kv'))
-Builder.load_file(os.path.join(current_dir, 'gui', 'settings_screen.kv'))
-Builder.load_file(os.path.join(current_dir, 'gui', 'popups.kv'))
 
 class AlarmManager:
     """
@@ -329,7 +321,7 @@ class AlarmManager:
             logging.error(f"Error in handle_alarm_dismiss: {e}")
 
 class VoiceAssistantApp(App):
-    use_kivy_settings = False
+    kv_file = None
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -387,9 +379,30 @@ class VoiceAssistantApp(App):
     def build(self):
         """Build the main application."""
         Window.clearcolor = (1, 1, 1, 1)
-
+        # Get absolute paths
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        print("🔍 Loading KV files manually...")
+        
+        # Load individual KV files in correct order
+        kv_files = [
+            'gui/popups.kv',      # Load first - popups might be referenced
+            'gui/main_screen.kv',
+            'gui/tasks_screen.kv', 
+            'gui/settings_screen.kv'
+        ]
+        
+        for kv_file in kv_files:
+            full_path = os.path.join(current_dir, kv_file)
+            if os.path.exists(full_path):
+                Builder.load_file(full_path)
+                print(f"✅ Loaded: {kv_file}")
+            else:
+                print(f"❌ Missing: {full_path}")
+        
+        
         self.screen_manager = ScreenManager()
-
+        
         if not self._initialize_components():
             error_screen = Screen(name='error')
             error_layout = BoxLayout(orientation='vertical', padding=20)
