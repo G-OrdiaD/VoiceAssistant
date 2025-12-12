@@ -1,30 +1,32 @@
-
 ```markdown
 # Voice Assistant
 
-An **offline-first, privacy-focused** voice assistant for daily task management, designed with simplicity and accessibility in mind. Built to run completely locally. Developed as a research project and validated with the target demographic.
+An **offline-first, privacy-focused** voice assistant for daily task management. Built for simplicity and accessibility, running completely locally without internet. Developed as a research project and validated with the target demographic.
 
 ---
 
 ## ✨ Features
 
-*   🎤 **Offline Voice Recognition**: Powered by Vosk for completely local speech-to-text.
-*   🔐 **Full Database Encryption**: All user data (tasks, reminders) is encrypted at rest using `cryptography`.
-*   👵 **Accessible GUI**: Built with Kivy, featuring a high-contrast, clear interface.
-*   📢 **Voice & Visual Reminders**: Get spoken and on-screen alerts for your tasks.
-*   🧪 **User-Validated**: Functionality and design tested and validated with the target user demographic.
-*   🧩 **Modular & Tested**: Clean separation of concerns with a dedicated test suite.
-*   💻 **Cross-Platform Desktop**: Runs on Windows, macOS, and Linux desktop environments.
+| Feature | Description |
+|---------|-------------|
+| 🎤 **Offline Voice Recognition** | Powered by Vosk for completely local speech-to-text |
+| 🔐 **Full Database Encryption** | All user data encrypted at rest using `cryptography` |
+| 👵 **Accessible GUI** | High-contrast Kivy interface designed for clarity |
+| 📢 **Voice & Visual Reminders** | Spoken and on-screen alerts for tasks |
+| 🧪 **User-Validated** | Tested and validated with target demographic |
+| 🧩 **Modular & Tested** | Clean architecture with dedicated test suite |
+| 💻 **Cross-Platform** | Runs on Windows, macOS, and Linux |
 
+---
 
 ## 🗄️ Database Architecture
 
-The application uses a securely encrypted SQLite database to store all user reminders. The architecture ensures privacy by keeping data encrypted at all times on disk, with minimal, focused decryption for application function.
+The application uses a securely encrypted SQLite database. Data remains encrypted on disk with minimal, focused decryption during runtime.
 
 ```mermaid
 graph TD
     subgraph User_Input
-        A[User Voice Command<br/>e.g., &quot;Remind me to...&quot;] --> B[Command Parser]
+        A[User Voice Command<br/>e.g., "Remind me to..."] --> B[Command Parser]
     end
 
     subgraph Secure_Storage
@@ -37,23 +39,20 @@ graph TD
     end
 
     subgraph Application_Runtime
-        H -- Encrypted Query --> I[Alarm Manager / Scheduler]
-        I -- Decrypts Only Time --> J{Check if Time <= Now}
+        H -- Encrypted Query --> I[Alarm Manager]
+        I -- Decrypts Only Time --> J{Check if Time ≤ Now}
         J -- Yes --> K[Decrypt Full Task]
         K --> L[Trigger Alert<br/>GUI/TTS Notification]
     end
 
     style H fill:#f9f,stroke:#333,stroke-width:2px
     style D fill:#ccf,stroke:#333
+```
 
-
-
-
-Key Security Principles:
-
-Encryption at Rest: The tasks.db file and its critical fields (task, time) are encrypted on disk.
-Focused Decryption: The background scheduler only decrypts the reminder time to check for due alerts. The task description remains encrypted until the moment it needs to be displayed or spoken.
-Key Derivation: The encryption key is derived from a user-provided passphrase using a secure algorithm (e.g., PBKDF2), ensuring the key itself is not stored
+**Key Security Principles:**
+1. **Encryption at Rest**: The `tasks.db` file and critical fields are encrypted on disk
+2. **Focused Decryption**: Scheduler decrypts only reminder times for checking alerts
+3. **Key Derivation**: Encryption key derived from user passphrase (not stored)
 
 ---
 
@@ -65,60 +64,40 @@ offVA/
 │   ├── data/              # Data handling and encryption
 │   │   ├── database.py    # Encrypted SQLite operations
 │   │   ├── models.py      # Data models
-│   │   └── encryption.py  # Core encryption/decryption logic
-│   ├── gui/               # Kivy-based user interface
+│   │   └── encryption.py  # Core encryption logic
+│   ├── gui/               # Kivy user interface
 │   │   ├── main_screen.py
 │   │   ├── tasks_screen.py
-│   │   └── ... (.kv files)
+│   │   └── *.kv           # UI layout files
 │   ├── voice/             # Voice processing
 │   │   ├── stt_engine.py  # Speech-to-Text (Vosk)
 │   │   ├── tts_engine.py  # Text-to-Speech
 │   │   └── command_parser.py
 │   ├── core/              # Core application logic
-│   │   └── alarm_manager.py # Background reminder scheduler
-│   ├── security.py        # Security configuration & utilities
+│   │   └── alarm_manager.py # Background scheduler
 │   └── main.py            # Application entry point
 ├── tests/                 # Test suite
-│   ├── integration/
-│   ├── test_database.py
-│   ├── test_security.py
-│   └── ...
 ├── assets/                # Fonts and icons
-├── tasks.db               # Encrypted SQLite database (user data)
 ├── requirements.txt       # Python dependencies
 └── README.md              # This file
 ```
 
 ---
 
-## ⚙️ Installation & Setup
+## ⚡ Quick Start
 
-### 1. Prerequisites
-*   Python 3.9 or higher
-*   `pip` (Python package manager)
-
-### 2. Clone and Set Up
 ```bash
-# 1. Clone the repository
-git clone <your-repo-url>
-cd offVA
+# Clone and setup
+git clone https://github.com/G-OrdiaD/VoiceAssistant.git
+cd VoiceAssistant
 
-# 2. Create and activate a virtual environment
-python -m venv .venv
-# On Windows:
-.venv\Scripts\activate
-# On macOS/Linux:
-source .venv/bin/activate
-
-# 3. Install dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# 4. Download the Vosk language model
+# Download voice model
 python download_model.py
-```
 
-### 3. Running the Application
-```bash
+# Run application
 python src/main.py
 
 #or 
@@ -128,61 +107,53 @@ python -m src.main
 
 ---
 
-## 🗣️ How to Use
+## 🗣️ Usage Examples
 
-### Voice Commands
-Speak naturally to manage tasks:
-*   `"Remind me to take my medication at 8 PM"`
-*   `"What are my reminders for today?"`
-*   `"Clear all reminders"`
+**Voice Commands:**
+- `"Remind me to take medication at 8 PM"`
+- `"What are my reminders for today?"`
+- `"Delete all reminders"`
+- `"Completed take medication at 8 PM"`
 
-### Manual Task Management
-Use the **Tasks** screen in the GUI to view, add, edit, or delete reminders manually.
-
----
-
-## 🔬 Research & Future Directions
-
-This project was developed as a research initiative focused on creating accessible, privacy-preserving technology for older adults. The desktop application has been functionally tested and its design validated by users from the target demographic.
-
-**Future development and collaboration are welcome**, particularly in exploring:
-*   Porting the application to **mobile platforms** (iOS/Android) and low-resource device like Raspberry Pi to increase accessibility and convenience.
-*   Extending the voice model and natural language processing for more complex commands.
-*   Integrating with other local smart home or health devices in a secure, offline manner.
+**Manual Control:** Use the Tasks screen in the GUI to manage reminders.
 
 ---
 
-## 🔒 Security Model
+## 🔬 Research & Future Work
 
-*   **Encryption at Rest**: The entire `tasks.db` SQLite file is encrypted using the Fernet symmetric encryption from the `cryptography` library.
-*   **On-Device Only**: All processing happens on your device. No data is sent to any server.
-*   **Focused Data Access**: The background scheduler only decrypts the minimal data necessary (reminder times) to check for alerts.
+This research project focuses on accessible, privacy-preserving technology for older adults.
+
+**Future directions:**
+- Mobile platform ports (iOS/Android)
+- Extended voice command recognition
+- Low-resource device optimization (Raspberry Pi)
+- Secure local smart home integration
+
+**Collaboration welcome.**
 
 ---
 
-## 🧪 Running Tests
-
-The project includes unit and integration tests. Run them with `pytest`:
+## 🧪 Testing
 
 ```bash
 # Run all tests
 pytest
 
-# Run a specific test file (e.g., security tests)
+# Run specific test file
 pytest tests/test_security.py -v
 ```
 
 ---
 
-## 📝 License
+## 📄 License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+MIT License. See LICENSE file for details.
 
 ---
 
 ## 🙏 Acknowledgments
 
-*   [Vosk](https://alphacephei.com/vosk/) for the offline speech recognition toolkit.
-*   [Kivy](https://kivy.org/) for the cross-platform GUI framework.
-*   [Cryptography](https://cryptography.io/) for the robust encryption primitives.
+- [Vosk](https://alphacephei.com/vosk/) - Offline speech recognition
+- [Kivy](https://kivy.org/) - Cross-platform GUI framework
+- [Cryptography](https://cryptography.io/) - Encryption library
 ```
