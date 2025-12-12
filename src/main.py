@@ -34,16 +34,23 @@ Window.size = (550, 800)
 Window.minimum_width, Window.minimum_height = 550, 800
 
 # Setup and Configure logging
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+log_file = os.path.join(project_root, 'voice_assistant.log')
+
+print (f"🔍 Log file path: {log_file}")
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('voice_assistant.log'),
+        logging.FileHandler(log_file),  # Absolute path to project root
         logging.StreamHandler()
     ]
 )
 
 logger = logging.getLogger(__name__)
+
 
 
 # Font registration
