@@ -29,6 +29,7 @@ assets/models/
 .Trashes
 ehthumbs.db
 Thumbs.db
+.pytest_cache/
 
 # Logs
 *.log
@@ -41,4 +42,4 @@ dist/
 # Other
 assets/.idea/
 tasks.db
-Voice_assistant.log
+voice_assistant.log
